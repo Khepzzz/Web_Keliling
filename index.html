@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Catatan Keliling Lapangan</title>
+<style>
+  :root {
+    --bg:#eef2f1; --surface:#fff; --ink:#18262b; --muted:#5d6f75; --line:#d5dedd;
+    --brand:#0f5c66; --brand-d:#0a444c; --ok:#1b7a4b; --warn:#a86a00; --bad:#b3372f;
+    --ok-bg:#e2f3ea; --warn-bg:#fdf0d5; --bad-bg:#fbe5e3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#10191c; --surface:#18262b; --ink:#e8f0f1; --muted:#97aaae; --line:#2b3d43;
+      --brand:#3fb0bd; --brand-d:#5cc5d1; --ok:#6fd49c; --warn:#f0be5b; --bad:#f08a82;
+      --ok-bg:#16382a; --warn-bg:#3b2f12; --bad-bg:#3d1f1c; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  .hidden { display:none !important; }
+  header { display:flex; justify-content:space-between; align-items:center; padding:14px 20px; background:var(--brand); color:#fff; }
+  header h1 { margin:0; font-size:1.15rem; }
+  header button { width:auto; margin:0; padding:8px 14px; background:rgba(255,255,255,.18); font-size:.9rem; }
+  .wrap { max-width:1280px; margin:0 auto; padding:16px; display:grid; gap:16px; }
+  @media (min-width:960px) { .wrap { grid-template-columns:380px 1fr; align-items:start; } .form-card { position:sticky; top:16px; } }
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:18px; }
+  .card h2 { margin:0 0 12px; font-size:1.05rem; }
+  label { display:block; font-size:.85rem; font-weight:600; color:var(--muted); margin-top:12px; }
+  input, textarea, select, button { width:100%; font:inherit; padding:11px 12px; margin-top:4px; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--ink); }
+  input:focus, textarea:focus, select:focus, button:focus-visible { outline:2px solid var(--brand); outline-offset:1px; }
+  button { background:var(--brand); color:#fff; font-weight:600; border:0; cursor:pointer; }
+  button:hover { background:var(--brand-d); }
+  button:disabled { opacity:.6; cursor:wait; }
+  .btn-row { display:flex; gap:8px; flex-wrap:wrap; }
+  .btn-row button { flex:1; min-width:140px; margin:0; }
+  .btn-x { background:#1b7a4b; } .btn-p { background:#8a3a34; }
+  .login { max-width:380px; margin:12vh auto 0; }
+  .err { color:var(--bad); font-size:.9rem; min-height:1.2em; margin:8px 0 0; }
+  .toast { position:fixed; left:50%; bottom:20px; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:10px 18px; border-radius:8px; font-size:.9rem; z-index:9; max-width:90vw; }
+  .badge { display:inline-block; padding:2px 10px; border-radius:99px; font-size:.8rem; font-weight:600; white-space:nowrap; }
+  .b-ok { background:var(--ok-bg); color:var(--ok); } .b-warn { background:var(--warn-bg); color:var(--warn); } .b-bad { background:var(--bad-bg); color:var(--bad); }
+  .empty { text-align:center; color:var(--muted); padding:28px 0; }
+  .btn-del { width:auto; margin:0; padding:6px 12px; font-size:.85rem; background:var(--bad-bg); color:var(--bad); }
+  .btn-del:hover { background:var(--bad); color:#fff; }
+  .count { color:var(--muted); font-size:.85rem; margin:8px 0 0; }
+
+  /* Tabel di desktop, kartu di mobile */
+  table { width:100%; border-collapse:collapse; margin-top:10px; font-size:.9rem; }
+  th, td { padding:10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+  th { color:var(--muted); font-size:.8rem; }
+  @media (max-width:719px) {
+    thead { display:none; }
+    table, tbody, tr, td { display:block; width:100%; }
+    tr { border:1px solid var(--line); border-radius:10px; padding:8px 12px; margin-bottom:10px; }
+    td { border:0; padding:4px 0; display:flex; gap:10px; justify-content:space-between; text-align:right; }
+    td::before { content:attr(data-l); color:var(--muted); font-size:.8rem; font-weight:600; text-align:left; flex:0 0 90px; }
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+
+<section id="loginSection" class="card login">
+  <h2>Masuk</h2>
+  <label for="passInput">Password</label>
+  <input type="password" id="passInput" autocomplete="current-password">
+  <p class="err" id="loginErr"></p>
+  <button id="loginBtn">Masuk</button>
+</section>
+
+<div id="mainSection" class="hidden">
+  <header><h1>Catatan Keliling Lapangan</h1><button id="logoutBtn">Keluar</button></header>
+  <main class="wrap">
+    <section class="card form-card">
+      <h2>Input data klien</h2>
+      <label for="nama">Nama calon klien / toko *</label>
+      <input id="nama" maxlength="100">
+      <label for="alamat">Alamat / lokasi</label>
+      <input id="alamat" maxlength="200">
+      <label for="hp">No HP / WA</label>
+      <input id="hp" type="tel" inputmode="tel" placeholder="08123456789">
+      <label for="statusKlien">Respon klien</label>
+      <select id="statusKlien">
+        <option>Tertarik / Mau</option>
+        <option>Ragu-ragu / Pikir-pikir</option>
+        <option>Menolak / Tidak Mau</option>
+      </select>
+      <div id="wrapperEstimasi">
+        <label for="estimasiBarang">Estimasi kirim per minggu</label>
+        <input id="estimasiBarang" placeholder="Contoh: 5 dus" maxlength="60">
+      </div>
+      <label for="keluhKesah">Catatan hasil obrolan</label>
+      <textarea id="keluhKesah" rows="4" maxlength="800"></textarea>
+      <p class="err" id="formErr"></p>
+      <button id="saveBtn">Simpan data</button>
+    </section>
+
+    <section class="card">
+      <h2>Riwayat data</h2>
+      <label for="searchFilter" class="hidden">Cari</label>
+      <input id="searchFilter" type="search" placeholder="Cari nama, alamat, atau catatan">
+      <p class="count" id="count"></p>
+      <div class="btn-row" style="margin-top:10px">
+        <button class="btn-x" id="xlsBtn">Unduh Excel</button>
+        <button class="btn-p" id="pdfBtn">Unduh PDF</button>
+      </div>
+      <table id="dataTable">
+        <thead><tr><th>Waktu</th><th>Nama</th><th>Alamat</th><th>No HP</th><th>Status</th><th>Est./minggu</th><th>Catatan</th><th></th></tr></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+      <div class="empty hidden" id="empty">Belum ada data. Isi form untuk mulai mencatat.</div>
+    </section>
+  </main>
+</div>
+
+<script>
+  // Ganti dengan URL Web App (berakhiran /exec)
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx7BaH87ogbbpuKYctBx8k1lRjJd1yFM0SttL2hPoiqEj7y7mX90tNCidWPRY6lZl4v/exec";
+
+  const $ = id => document.getElementById(id);
+  let password = sessionStorage.getItem("pw") || "";
+  let allData = [];
+
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+  const fmtTime = iso => { const d = new Date(iso); return isNaN(d) ? esc(iso) : d.toLocaleString("id-ID", { dateStyle:"medium", timeStyle:"short" }); };
+  const badge = s => `<span class="badge ${s.startsWith("Tertarik") ? "b-ok" : s.startsWith("Ragu") ? "b-warn" : "b-bad"}">${esc(s)}</span>`;
+
+  function toast(msg) {
+    const t = document.createElement("div");
+    t.className = "toast"; t.textContent = msg; document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2800);
+  }
+
+  async function api(payload) {
+    if (!SCRIPT_URL.startsWith("https://script.google.com/")) throw new Error("SCRIPT_URL belum diisi dengan URL Web App Apps Script.");
+    const res = await fetch(SCRIPT_URL, { method:"POST", body:JSON.stringify({ ...payload, password }) });
+    if (!res.ok) throw new Error("Server membalas error " + res.status);
+    const data = await res.json();
+    if (data.status !== "success") throw new Error(data.message || "Terjadi kesalahan.");
+    return data;
+  }
+
+  async function busy(btn, fn) {
+    if (btn.disabled) return;
+    const label = btn.textContent; btn.disabled = true; btn.textContent = "Memproses...";
+    try { await fn(); } finally { btn.disabled = false; btn.textContent = label; }
+  }
+
+  function showApp() { $("loginSection").classList.add("hidden"); $("mainSection").classList.remove("hidden"); muatRiwayat(); }
+  function logout() { sessionStorage.removeItem("pw"); password = ""; location.reload(); }
+
+  $("loginBtn").onclick = () => busy($("loginBtn"), async () => {
+    $("loginErr").textContent = "";
+    password = $("passInput").value;
+    try { await api({ action:"login" }); sessionStorage.setItem("pw", password); showApp(); }
+    catch (e) { password = ""; $("loginErr").textContent = e.message; }
+  });
+  $("passInput").onkeydown = e => { if (e.key === "Enter") $("loginBtn").click(); };
+  $("logoutBtn").onclick = logout;
+
+  function toggleEstimasi() {
+    const on = $("statusKlien").value.startsWith("Tertarik");
+    $("wrapperEstimasi").classList.toggle("hidden", !on);
+    if (!on) $("estimasiBarang").value = "";
+  }
+  $("statusKlien").onchange = toggleEstimasi;
+
+  $("saveBtn").onclick = async () => {
+    const err = $("formErr"); err.textContent = "";
+    const nama = $("nama").value.trim(), hp = $("hp").value.trim();
+    if (!nama) { err.textContent = "Nama wajib diisi."; return; }
+    if (hp && !/^\+?[\d\s-]{8,16}$/.test(hp)) { err.textContent = "No HP valid 8-16 angka."; return; }
+    const f = { nama, alamat:$("alamat").value, hp, statusKlien:$("statusKlien").value,
+                estimasiBarang:$("estimasiBarang").value, keluhKesah:$("keluhKesah").value };
+    // Tampilkan langsung, kirim ke server di belakang
+    const row = { id:"tmp" + Date.now(), pending:true, waktu:new Date().toISOString(), nama:f.nama, alamat:f.alamat,
+                  hp:f.hp, status:f.statusKlien, estimasi:f.estimasiBarang || "-", catatan:f.keluhKesah };
+    allData.unshift(row); render();
+    ["nama","alamat","hp","estimasiBarang","keluhKesah"].forEach(id => $(id).value = "");
+    $("statusKlien").value = "Tertarik / Mau"; toggleEstimasi();
+    try {
+      const res = await api({ action:"save", ...f });
+      row.id = res.id; row.pending = false; render(); toast("Data tersimpan");
+    } catch (e) {
+      allData = allData.filter(r => r !== row); render();
+      // kembalikan isian supaya tidak perlu mengetik ulang
+      $("nama").value = f.nama; $("alamat").value = f.alamat; $("hp").value = f.hp;
+      $("statusKlien").value = f.statusKlien; toggleEstimasi();
+      $("estimasiBarang").value = f.estimasiBarang; $("keluhKesah").value = f.keluhKesah;
+      err.textContent = "Gagal menyimpan: " + e.message;
+    }
+  };
+
+  async function muatRiwayat() {
+    try { allData = (await api({ action:"list" })).data; render(); }
+    catch (e) { toast("Gagal memuat data: " + e.message); }
+  }
+
+  function filtered() {
+    const q = $("searchFilter").value.toLowerCase().trim();
+    return q ? allData.filter(r => [r.nama, r.alamat, r.hp, r.status, r.catatan].join(" ").toLowerCase().includes(q)) : allData;
+  }
+
+  function render() {
+    const rows = filtered();
+    $("tableBody").innerHTML = rows.map(r => `<tr>
+      <td data-l="Waktu">${fmtTime(r.waktu)}</td>
+      <td data-l="Nama"><strong>${esc(r.nama)}</strong></td>
+      <td data-l="Alamat">${esc(r.alamat)}</td>
+      <td data-l="No HP">${esc(r.hp)}</td>
+      <td data-l="Status">${badge(r.status)}</td>
+      <td data-l="Est./minggu">${esc(r.estimasi)}</td>
+      <td data-l="Catatan">${esc(r.catatan)}</td>
+      <td><button class="btn-del" data-id="${esc(r.id)}" data-nama="${esc(r.nama)}" ${r.pending ? "disabled" : ""}>${r.pending ? "Menyimpan..." : "Hapus"}</button></td>
+    </tr>`).join("");
+    $("empty").classList.toggle("hidden", rows.length > 0);
+    $("dataTable").classList.toggle("hidden", rows.length === 0);
+    $("count").textContent = `${rows.length} dari ${allData.length} data`;
+  }
+  $("searchFilter").oninput = render;
+
+  // Event delegation: aman untuk nama yang mengandung tanda petik
+  $("tableBody").onclick = async e => {
+    const btn = e.target.closest(".btn-del"); if (!btn || btn.disabled) return;
+    if (!confirm(`Hapus data "${btn.dataset.nama}"?`)) return;
+    const idx = allData.findIndex(r => r.id === btn.dataset.id); if (idx < 0) return;
+    const [removed] = allData.splice(idx, 1); render();   // hilang langsung dari layar
+    try { await api({ action:"delete", id:removed.id }); toast("Data dihapus"); }
+    catch (err) { allData.splice(idx, 0, removed); render(); toast("Gagal menghapus: " + err.message); }
+  };
+
+  // Export memakai data yang sedang terfilter, tanpa kolom Aksi
+  function exportRows() {
+    return filtered().map(r => ({ Waktu:new Date(r.waktu).toLocaleString("id-ID"), Nama:r.nama, Alamat:r.alamat,
+      "No HP":r.hp, Status:r.status, "Est. Barang/Mgg":r.estimasi, "Keluh Kesah":r.catatan }));
+  }
+  $("xlsBtn").onclick = () => {
+    const rows = exportRows(); if (!rows.length) return toast("Tidak ada data untuk diunduh");
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), "Rekap");
+    XLSX.writeFile(wb, "Rekap_Keliling.xlsx");
+  };
+  $("pdfBtn").onclick = () => {
+    const rows = exportRows(); if (!rows.length) return toast("Tidak ada data untuk diunduh");
+    const keys = Object.keys(rows[0]);
+    const el = document.createElement("div");
+    el.style.cssText = "background:#fff;color:#000;padding:8px";
+    el.innerHTML = `<h3 style="font-family:sans-serif;color:#000;margin:0 0 8px">Rekap Keliling Lapangan</h3>
+      <table style="width:100%;border-collapse:collapse;font:10px sans-serif;color:#000;background:#fff">
+      <tr>${keys.map(k => `<th style="border:1px solid #999;padding:4px;background:#eee;color:#000">${esc(k)}</th>`).join("")}</tr>
+      ${rows.map(r => `<tr>${keys.map(k => `<td style="border:1px solid #999;padding:4px;color:#000;background:#fff">${esc(r[k])}</td>`).join("")}</tr>`).join("")}</table>`;
+    html2pdf().set({ margin:8, html2canvas:{ backgroundColor:"#ffffff" }, filename:"Rekap_Keliling.pdf", jsPDF:{ orientation:"landscape", format:"a4" } }).from(el).save();
+  };
+
+  toggleEstimasi();
+  if (password) showApp();
+</script>
+</body>
+</html>
