@@ -21,8 +21,20 @@
   header { display:flex; justify-content:space-between; align-items:center; padding:14px 20px; background:var(--brand); color:#fff; }
   header h1 { margin:0; font-size:1.15rem; }
   header button { width:auto; margin:0; padding:8px 14px; background:rgba(255,255,255,.18); font-size:.9rem; }
-  .wrap { max-width:1280px; margin:0 auto; padding:16px; display:grid; gap:16px; }
-  @media (min-width:960px) { .wrap { grid-template-columns:380px 1fr; align-items:start; } .form-card { position:sticky; top:16px; } }
+  .wrap { max-width:980px; margin:0 auto; padding:16px; }
+  .tabs { display:flex; gap:6px; margin-bottom:14px; border-bottom:2px solid var(--line); }
+  .tab { width:auto; margin:0 0 -2px; flex:1; max-width:220px; background:none; color:var(--muted); border-radius:8px 8px 0 0; border-bottom:2px solid transparent; }
+  .tab:hover { background:var(--surface); color:var(--ink); }
+  .tab.on { color:var(--brand); border-bottom-color:var(--brand); background:var(--surface); }
+  .filters { display:grid; grid-template-columns:1fr 1fr; gap:0 10px; }
+  .filters .full { grid-column:1 / -1; }
+  .filters label { margin-top:8px; }
+  .pager { display:flex; justify-content:center; align-items:center; gap:4px; flex-wrap:wrap; margin-top:14px; }
+  .pager button { width:auto; min-width:38px; margin:0; padding:7px 11px; background:var(--surface); color:var(--ink); border:1px solid var(--line); font-weight:500; }
+  .pager button:hover:not(:disabled) { background:var(--bg); }
+  .pager button.cur { background:var(--brand); color:#fff; border-color:var(--brand); }
+  .pager button:disabled { opacity:.45; cursor:default; }
+  .pager span { color:var(--muted); padding:0 4px; }
   .card { background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:18px; }
   .card h2 { margin:0 0 12px; font-size:1.05rem; }
   label { display:block; font-size:.85rem; font-weight:600; color:var(--muted); margin-top:12px; }
@@ -72,7 +84,12 @@
 <div id="mainSection" class="hidden">
   <header><h1>Catatan Keliling Lapangan</h1><button id="logoutBtn">Keluar</button></header>
   <main class="wrap">
-    <section class="card form-card">
+    <div class="tabs" role="tablist">
+      <button class="tab on" id="tabInput" role="tab" data-tab="input">Input</button>
+      <button class="tab" id="tabRiwayat" role="tab" data-tab="riwayat">Riwayat (0)</button>
+    </div>
+
+    <section class="card" id="panelInput">
       <h2>Input data klien</h2>
       <label for="nama">Nama calon klien / toko *</label>
       <input id="nama" maxlength="100">
@@ -88,7 +105,7 @@
       </select>
       <div id="wrapperEstimasi">
         <label for="estimasiBarang">Estimasi kirim per minggu</label>
-        <input id="estimasiBarang" placeholder="Contoh: 5 barang" maxlength="60">
+        <input id="estimasiBarang" placeholder="Contoh: 5 dus" maxlength="60">
       </div>
       <label for="keluhKesah">Catatan hasil obrolan</label>
       <textarea id="keluhKesah" rows="4" maxlength="800"></textarea>
@@ -96,10 +113,29 @@
       <button id="saveBtn">Simpan data</button>
     </section>
 
-    <section class="card">
+    <section class="card hidden" id="panelRiwayat">
       <h2>Riwayat data</h2>
-      <label for="searchFilter" class="hidden">Cari</label>
-      <input id="searchFilter" type="search" placeholder="Cari nama, alamat, atau catatan">
+      <div class="filters">
+        <div class="full">
+          <label for="searchFilter">Cari</label>
+          <input id="searchFilter" type="search" placeholder="Nama, alamat, atau catatan">
+        </div>
+        <div>
+          <label for="statusFilter">Status</label>
+          <select id="statusFilter">
+            <option value="">Semua</option>
+            <option value="Tertarik">Tertarik</option>
+            <option value="Ragu">Ragu-ragu</option>
+            <option value="Menolak">Menolak</option>
+          </select>
+        </div>
+        <div>
+          <label for="perPage">Tampilkan per halaman</label>
+          <select id="perPage">
+            <option>10</option><option>25</option><option>50</option><option>100</option>
+          </select>
+        </div>
+      </div>
       <p class="count" id="count"></p>
       <div class="btn-row" style="margin-top:10px">
         <button class="btn-x" id="xlsBtn">Unduh Excel</button>
@@ -109,7 +145,8 @@
         <thead><tr><th>Waktu</th><th>Nama</th><th>Alamat</th><th>No HP</th><th>Status</th><th>Est./minggu</th><th>Catatan</th><th></th></tr></thead>
         <tbody id="tableBody"></tbody>
       </table>
-      <div class="empty hidden" id="empty">Belum ada data. Isi form untuk mulai mencatat.</div>
+      <div class="empty hidden" id="empty"></div>
+      <nav class="pager" id="pager" aria-label="Halaman"></nav>
     </section>
   </main>
 </div>
@@ -197,14 +234,31 @@
     catch (e) { toast("Gagal memuat data: " + e.message); }
   }
 
+  let page = 1, perPage = 10;
+
   function filtered() {
     const q = $("searchFilter").value.toLowerCase().trim();
-    return q ? allData.filter(r => [r.nama, r.alamat, r.hp, r.status, r.catatan].join(" ").toLowerCase().includes(q)) : allData;
+    const st = $("statusFilter").value;
+    return allData.filter(r =>
+      (!st || r.status.startsWith(st)) &&
+      (!q || [r.nama, r.alamat, r.hp, r.status, r.catatan].join(" ").toLowerCase().includes(q)));
+  }
+
+  function pageList(cur, last) {
+    const set = new Set([1, last, cur - 1, cur, cur + 1].filter(n => n >= 1 && n <= last));
+    const out = []; let prev = 0;
+    [...set].sort((x, y) => x - y).forEach(n => { if (n - prev > 1) out.push("..."); out.push(n); prev = n; });
+    return out;
   }
 
   function render() {
-    const rows = filtered();
-    $("tableBody").innerHTML = rows.map(r => `<tr>
+    const rows = filtered(), total = rows.length;
+    const pages = Math.max(1, Math.ceil(total / perPage));
+    if (page > pages) page = pages;
+    const start = (page - 1) * perPage, slice = rows.slice(start, start + perPage);
+
+    $("tabRiwayat").textContent = `Riwayat (${allData.length})`;
+    $("tableBody").innerHTML = slice.map(r => `<tr>
       <td data-l="Waktu">${fmtTime(r.waktu)}</td>
       <td data-l="Nama"><strong>${esc(r.nama)}</strong></td>
       <td data-l="Alamat">${esc(r.alamat)}</td>
@@ -214,11 +268,39 @@
       <td data-l="Catatan">${esc(r.catatan)}</td>
       <td><button class="btn-del" data-id="${esc(r.id)}" data-nama="${esc(r.nama)}" ${r.pending ? "disabled" : ""}>${r.pending ? "Menyimpan..." : "Hapus"}</button></td>
     </tr>`).join("");
-    $("empty").classList.toggle("hidden", rows.length > 0);
-    $("dataTable").classList.toggle("hidden", rows.length === 0);
-    $("count").textContent = `${rows.length} dari ${allData.length} data`;
+
+    $("dataTable").classList.toggle("hidden", total === 0);
+    $("empty").classList.toggle("hidden", total > 0);
+    $("empty").textContent = allData.length ? "Tidak ada data yang cocok dengan filter." : "Belum ada data. Isi form di tab Input untuk mulai mencatat.";
+    $("count").textContent = total
+      ? `Menampilkan ${start + 1}-${start + slice.length} dari ${total} data` + (total !== allData.length ? ` (difilter dari ${allData.length})` : "")
+      : "";
+
+    const pg = $("pager");
+    if (pages <= 1) { pg.innerHTML = ""; return; }
+    pg.innerHTML = `<button data-p="${page - 1}" ${page === 1 ? "disabled" : ""}>&lsaquo; Sebelumnya</button>`
+      + pageList(page, pages).map(n => n === "..." ? "<span>...</span>" : `<button data-p="${n}" class="${n === page ? "cur" : ""}">${n}</button>`).join("")
+      + `<button data-p="${page + 1}" ${page === pages ? "disabled" : ""}>Berikutnya &rsaquo;</button>`;
   }
-  $("searchFilter").oninput = render;
+
+  // Setiap filter berubah, kembali ke halaman 1
+  const resetRender = () => { page = 1; render(); };
+  $("searchFilter").oninput = resetRender;
+  $("statusFilter").onchange = resetRender;
+  $("perPage").onchange = () => { perPage = parseInt($("perPage").value, 10); resetRender(); };
+  $("pager").onclick = e => {
+    const b = e.target.closest("button[data-p]"); if (!b || b.disabled) return;
+    page = parseInt(b.dataset.p, 10); render(); $("tabRiwayat").scrollIntoView({ block:"start", behavior:"smooth" });
+  };
+
+  function showTab(name) {
+    const isIn = name === "input";
+    $("panelInput").classList.toggle("hidden", !isIn);
+    $("panelRiwayat").classList.toggle("hidden", isIn);
+    $("tabInput").classList.toggle("on", isIn);
+    $("tabRiwayat").classList.toggle("on", !isIn);
+  }
+  document.querySelectorAll(".tab").forEach(t => t.onclick = () => showTab(t.dataset.tab));
 
   // Event delegation: aman untuk nama yang mengandung tanda petik
   $("tableBody").onclick = async e => {
