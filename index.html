@@ -125,6 +125,72 @@ main{padding:calc(18px + env(safe-area-inset-top)) 14px 120px}
 .toast{bottom:calc(96px + env(safe-area-inset-bottom))}
 dialog{margin:auto auto 0;width:100%;max-width:none;border-radius:28px 28px 0 0;padding-bottom:calc(22px + env(safe-area-inset-bottom));animation:sheet .32s cubic-bezier(.2,.9,.3,1)}
 }
+
+.ph button{width:32px;height:32px;font-size:16px;top:3px;right:3px}
+
+.ph img.ph-wait{background:color-mix(in srgb,var(--ink) 10%,transparent);animation:pulse 1.2s ease-in-out infinite}
+.ph img.ph-fail{background:color-mix(in srgb,var(--bad) 14%,transparent);cursor:pointer}
+@keyframes pulse{50%{opacity:.5}}
+/* ===== Perbaikan tampilan HP ===== */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;overflow-x:hidden}
+body{overflow-x:clip}
+button,a,select{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+
+/* Input: cegah zoom otomatis iPhone dan lebar melebihi card */
+input,select,textarea{min-width:0;max-width:100%;font-size:16px}
+input[type=date]{-webkit-appearance:none;appearance:none;display:block;min-height:48px;text-align:left}
+input[type=date]::-webkit-date-and-time-value{text-align:left;min-height:1.5em}
+input::-ms-reveal,input::-ms-clear{display:none}
+
+/* Grid dan teks panjang tidak boleh melebarkan halaman */
+.filters{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.rec{grid-template-columns:minmax(0,1fr)}
+.two>.card,.rec,.li,.rh,.rl{min-width:0}
+.rec,.note,.li,.rh>b,.muted{overflow-wrap:anywhere}
+
+/* Ikon mata password */
+.pw{position:relative}
+.pw input{padding-right:50px}
+.eye{position:absolute;right:5px;bottom:5px;width:38px;height:38px;padding:0;display:grid;place-items:center;border-radius:50%;background:transparent;color:var(--muted);box-shadow:none}
+.eye:hover{filter:none;color:var(--ink);background:color-mix(in srgb,var(--ink) 7%,transparent)}
+.eye svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.eye .slash{display:none}
+.eye.on .slash{display:block}
+
+/* Tinggi layar mengikuti bilah alamat HP */
+@supports(height:100dvh){
+  body,.app{min-height:100dvh}
+  #map{height:62dvh}
+  dialog{max-height:92dvh}
+  @media(min-width:761px){.side{height:calc(100dvh - 24px)}}
+}
+dialog{overflow-x:hidden;overscroll-behavior:contain}
+html:has(dialog[open]){overflow:hidden}
+
+@media(max-width:760px){
+  main{padding:calc(18px + env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) calc(110px + env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))}
+  .card,.stat{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--surface-s)}
+}
+/* Tampilan foto besar */
+#lb{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.92);overscroll-behavior:contain}
+#lb.on{display:flex}
+#lb img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+#lbMsg{position:absolute;color:#fff;font-size:.95rem;padding:0 20px;text-align:center}
+.lbb{position:absolute;width:44px;height:44px;padding:0;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;box-shadow:none;font-size:22px;line-height:1;display:grid;place-items:center}
+#lbX{top:calc(12px + env(safe-area-inset-top));right:12px}
+#lbDl{top:calc(12px + env(safe-area-inset-top));right:66px}
+#lbP{left:10px;top:50%;margin-top:-22px}
+#lbN{right:10px;top:50%;margin-top:-22px}
+#lbC{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom));left:0;right:0;text-align:center;color:#fff;font-size:.85rem}
+.toast{z-index:300}
+
+/* Ikon tombol foto */
+.lbb svg,.ph button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.lbb{border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.16);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.lbb:hover{background:rgba(255,255,255,.28)}
+.ph button{display:grid;place-items:center;background:rgba(0,0,0,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.ph button svg{width:18px;height:18px}
+
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -136,7 +202,10 @@ dialog{margin:auto auto 0;width:100%;max-width:none;border-radius:28px 28px 0 0;
 <section id="loginSection" class="card login">
   <h2>Masuk</h2>
   <label for="passInput">Password</label>
-  <input type="password" id="passInput" autocomplete="current-password">
+  <div class="pw">
+  <input type="password" id="passInput" autocomplete="current-password" enterkeyhint="go">
+  <button type="button" class="eye" id="eyeBtn" aria-label="Tampilkan password"><svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path class="slash" d="M4 4l16 16"/></svg></button>
+</div>
   <p class="err" id="loginErr"></p>
   <button id="loginBtn" style="width:100%">Masuk</button>
 </section>
@@ -168,15 +237,17 @@ dialog{margin:auto auto 0;width:100%;max-width:none;border-radius:28px 28px 0 0;
     </section>
 
     <section id="v-input" class="view hidden">
-      <div class="card"><h2>Input data klien</h2><div id="formInput"></div><button id="saveBtn" style="width:100%">Simpan data</button></div>
+      <h2>Input data klien</h2>
+      <div class="card"><div id="formInput"></div><button id="saveBtn" style="width:100%">Simpan data</button></div>
     </section>
 
     <section id="v-riwayat" class="view hidden">
-      <div class="card"><h2>Riwayat data</h2>
+      <h2>Riwayat data</h2>
+      <div class="card">
         <div class="filters">
           <div class="full"><label for="q">Cari</label><input id="q" type="search" placeholder="Nama, alamat, atau catatan"></div>
           <div><label for="stF">Status</label><select id="stF"></select></div>
-          <div><label for="pp">Tampil per halaman</label><select id="pp"><option>10</option><option>25</option><option>50</option><option>100</option></select></div>
+          <div><label for="pp">Tampil per halaman</label><select id="pp"><option>10</option><option>25</option><option>50</option></select></div>
         </div>
         <p class="muted" id="count"></p>
         <div class="btn-row"><button class="btn-s" id="xlsBtn">Unduh Excel</button><button class="btn-s" id="pdfBtn">Unduh PDF</button></div>
@@ -199,6 +270,16 @@ dialog{margin:auto auto 0;width:100%;max-width:none;border-radius:28px 28px 0 0;
       <p class="muted" id="mapInfo"></p>
     </section>
   </main>
+</div>
+
+<div id="lb" role="dialog" aria-modal="true" aria-label="Foto">
+  <img id="lbImg" alt="Foto" class="hidden">
+  <span id="lbMsg"></span>
+  <button type="button" class="lbb" id="lbDl" aria-label="Unduh foto"><svg viewBox="0 0 24 24"><path d="M12 4v11"/><path d="m7.5 11 4.5 4.5 4.5-4.5"/><path d="M5 20h14"/></svg></button>
+  <button type="button" class="lbb" id="lbX" aria-label="Tutup"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  <button type="button" class="lbb" id="lbP" aria-label="Foto sebelumnya"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button>
+  <button type="button" class="lbb" id="lbN" aria-label="Foto berikutnya"><svg viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg></button>
+  <div id="lbC"></div>
 </div>
 
 <dialog id="spkModal"><h2 style="margin-top:0" id="spkTitle">SPK baru</h2>
@@ -230,6 +311,63 @@ const fmtTime = iso => { const d = new Date(iso); return isNaN(d) ? esc(iso) : d
 const fmtDay = iso => { const d = new Date(iso); return isNaN(d) ? esc(iso) : d.toLocaleDateString("id-ID",{dateStyle:"medium"}); };
 const badge = s => `<span class="badge" style="--c:${COL[s]||"#666"}">${esc(s)}</span>`;
 const thumb = (id, w) => `https://drive.google.com/thumbnail?id=${id}&sz=w${w}`;
+
+// ----- Foto cadangan lewat Apps Script + cache (IndexedDB) -----
+const PIXEL = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+const fotoMem = new Map(), badIds = new Set(), fotoQ = [], fotoWait = new Map();
+let fotoRun = 0;
+
+const idb = new Promise(res => { try{ const q = indexedDB.open("keliling-foto",1);
+  q.onupgradeneeded = () => q.result.createObjectStore("f");
+  q.onsuccess = () => res(q.result); q.onerror = () => res(null); }catch(e){ res(null); } });
+const idbGet = id => idb.then(db => !db ? null : new Promise(res => { try{
+  const q = db.transaction("f").objectStore("f").get(id); q.onsuccess = () => res(q.result||null); q.onerror = () => res(null); }catch(e){ res(null); } }));
+const idbPut = (id, v) => idb.then(db => { if(db) try{ db.transaction("f","readwrite").objectStore("f").put(v,id); }catch(e){} });
+
+// Perkecil ke 400px supaya ringan disimpan dan dimuat
+const kecil = src => new Promise((ok,no) => { const i = new Image();
+  i.onload = () => { const s = Math.min(1,400/Math.max(i.width,i.height)), c = document.createElement("canvas");
+    c.width = Math.round(i.width*s); c.height = Math.round(i.height*s); c.getContext("2d").drawImage(i,0,0,c.width,c.height);
+    ok(c.toDataURL("image/jpeg",.7)); };
+  i.onerror = () => no(new Error("Foto tidak bisa dibaca.")); i.src = src; });
+
+async function fetchFoto(id){
+  let err;
+  for(let i=0;i<3;i++){
+    try{ return await kecil((await api({action:"foto",id})).data); }
+    catch(e){ err = e; await new Promise(r => setTimeout(r, 800*(i+1))); }
+  }
+  throw err;
+}
+function pumpFoto(){
+  while(fotoRun < 2 && fotoQ.length){
+    const j = fotoQ.shift(); fotoRun++;
+    fetchFoto(j.id).then(j.ok, j.no).finally(() => { fotoRun--; pumpFoto(); });
+  }
+}
+function getFoto(id){
+  if(fotoMem.has(id)) return Promise.resolve(fotoMem.get(id));
+  if(fotoWait.has(id)) return fotoWait.get(id);
+  const p = (async () => {
+    let v = await idbGet(id);
+    if(!v){ v = await new Promise((ok,no) => { fotoQ.push({id,ok,no}); pumpFoto(); }); idbPut(id, v); }
+    fotoMem.set(id, v); return v;
+  })().finally(() => fotoWait.delete(id));
+  fotoWait.set(id, p); return p;
+}
+function pakaiCadangan(img){
+  const id = img.dataset.fid; if(!id || img.dataset.fb) return;
+  img.dataset.fb = "1"; badIds.add(id); img.classList.add("ph-wait");
+  getFoto(id).then(src => { img.src = src; img.classList.remove("ph-wait"); })
+    .catch(() => { img.classList.remove("ph-wait"); img.classList.add("ph-fail"); img.dataset.fb = ""; img.title = "Foto gagal dimuat. Ketuk untuk coba lagi."; });
+}
+const fimg = id => `<img loading="lazy" data-fid="${id}" src="${badIds.has(id) ? PIXEL : thumb(id,300)}"${badIds.has(id) ? ' data-need="1"' : ""} alt="Foto">`;
+
+document.addEventListener("error", e => { if(e.target.tagName==="IMG") pakaiCadangan(e.target); }, true);
+document.addEventListener("click", e => { const i = e.target.closest("img.ph-fail");
+  if(i){ e.preventDefault(); i.classList.remove("ph-fail"); pakaiCadangan(i); } }, true);
+new MutationObserver(() => document.querySelectorAll("img[data-need]").forEach(i => { delete i.dataset.need; pakaiCadangan(i); }))
+  .observe(document.body,{childList:true,subtree:true});
 const mapUrl = r => (r.lat != null && r.lng != null) ? `https://www.google.com/maps?q=${r.lat},${r.lng}` : (r.maps || "");
 
 let password = sessionStorage.getItem("pw") || "";
@@ -259,11 +397,24 @@ $("loginBtn").onclick = () => busy($("loginBtn"), async () => {
   catch(e){ password=""; $("loginErr").textContent = e.message; }
 });
 $("passInput").onkeydown = e => { if(e.key==="Enter") $("loginBtn").click(); };
+$("eyeBtn").onclick = () => { const p = $("passInput"), show = p.type === "password";
+  p.type = show ? "text" : "password"; $("eyeBtn").classList.toggle("on", show);
+  $("eyeBtn").setAttribute("aria-label", show ? "Sembunyikan password" : "Tampilkan password"); };
 $("logoutBtn").onclick = () => { sessionStorage.removeItem("pw"); location.reload(); };
 
+let loaded = false, loading = false, loadErr = "";
+const statusBox = () => loading ? `<div class="card muted" style="text-align:center">Memuat data…</div>`
+  : loadErr ? `<div class="card" style="text-align:center"><p class="err" style="margin:0 0 10px">Gagal memuat data: ${esc(loadErr)}</p><button data-act="reload">Coba lagi</button></div>` : "";
 async function muat(){
-  try{ const r = await api({action:"list"}); D = r.data; K = r.kroscek; S = r.spk || []; renderAll(); }
-  catch(e){ toast("Gagal memuat data: "+e.message); }
+  if(loading) return;
+  loading = true; loadErr = ""; renderAll();
+  let err;
+  for(let i=0;i<3;i++){
+    try{ const r = await api({action:"list"}); D = r.data; K = r.kroscek; S = r.spk || [];
+      loaded = true; loading = false; renderAll(); return; }
+    catch(e){ err = e; if(/password/i.test(e.message) || i===2) break;await new Promise(ok => setTimeout(ok, 1500*(i+1))); }
+  }
+  loading = false; loadErr = err ? err.message : "Terjadi kesalahan."; renderAll();
 }
 
 // ---------- Foto ----------
@@ -278,7 +429,7 @@ const photoHtml = p => `<div class="btn-row"><button type="button" class="btn-s"
 <input type="file" accept="image/*" capture="environment" id="${p}fc" class="hidden"><input type="file" accept="image/*" multiple id="${p}fg" class="hidden"><div class="th" id="${p}prev"></div>`;
 function initPhotos(p, initial = []){
   let list = initial.map(id => ({id}));
-  const draw = () => $(p+"prev").innerHTML = list.map((f,i) => `<div class="ph"><img src="${f.data||thumb(f.id,300)}" alt=""><button type="button" data-i="${i}" aria-label="Hapus foto">×</button></div>`).join("");
+  const draw = () => $(p+"prev").innerHTML = list.map((f,i) => `<div class="ph">${f.data ? `<img src="${f.data}" alt="">` : fimg(f.id)}<button type="button" data-i="${i}" aria-label="Hapus foto">×</button></div>`).join("");
   $(p+"prev").onclick = e => { const b = e.target.closest("button"); if(b){ list.splice(+b.dataset.i,1); draw(); } };
   $(p+"cam").onclick = () => $(p+"fc").click(); $(p+"gal").onclick = () => $(p+"fg").click();
   const add = async e => { try{ for(const f of e.target.files) list.push({data: await compress(f)}); }catch(x){ toast(x.message); } e.target.value = ""; draw(); };
@@ -286,11 +437,53 @@ function initPhotos(p, initial = []){
   return { count: () => list.length,
     async upload(){ for(const f of list){ if(!f.id){ f.id = (await api({action:"upload",data:f.data})).id; delete f.data; } } return list.map(f => f.id); } };
 }
-const thumbs = (ids, dl) => ids.length ? `<div class="th">${ids.map(id => `<div class="ph"><a href="${thumb(id,1600)}" target="_blank" rel="noopener"><img loading="lazy" src="${thumb(id,300)}" alt="Foto"></a>${dl?`<button type="button" data-act="dlfoto" data-id="${id}" title="Unduh foto" aria-label="Unduh foto">⬇</button>`:""}</div>`).join("")}</div>` : "";
+const thumbs = (ids, dl) => ids.length ? `<div class="th">${ids.map(id => `<div class="ph"><a href="${thumb(id,1600)}" data-lb="${id}">${fimg(id)}</a>${dl?`<button type="button" data-act="dlfoto" data-id="${id}" title="Unduh foto" aria-label="Unduh foto"><svg viewBox="0 0 24 24"><path d="M12 4v11"/><path d="m7.5 11 4.5 4.5 4.5-4.5"/><path d="M5 20h14"/></svg></button>`:""}</div>`).join("")}</div>` : "";
 async function downloadFoto(id){
   const {data} = await api({action:"foto",id});
   const a = document.createElement("a"); a.href = data; a.download = `foto_${id}.jpg`; document.body.appendChild(a); a.click(); a.remove();
 }
+
+// ---------- Tampilan foto besar ----------
+const bigMem = new Map(), lb = {ids:[], i:0, tok:0};
+async function besar(id){
+  if(bigMem.has(id)) return bigMem.get(id);
+  let err;
+  for(let n=0;n<3;n++){
+    try{ const d = (await api({action:"foto",id})).data; bigMem.set(id,d);
+      if(bigMem.size>8) bigMem.delete(bigMem.keys().next().value); return d; }
+    catch(e){ err = e; await new Promise(r => setTimeout(r, 700*(n+1))); }
+  }
+  throw err;
+}
+function lbShow(){
+  const id = lb.ids[lb.i], tok = ++lb.tok, img = $("lbImg"), multi = lb.ids.length > 1;
+  img.classList.add("hidden"); $("lbMsg").textContent = "Memuat…";
+  $("lbC").textContent = multi ? `${lb.i+1} / ${lb.ids.length}` : "";
+  $("lbP").classList.toggle("hidden", !multi); $("lbN").classList.toggle("hidden", !multi);
+  besar(id).then(src => { if(tok!==lb.tok) return; img.src = src; img.classList.remove("hidden"); $("lbMsg").textContent = ""; })
+    .catch(() => { if(tok===lb.tok) $("lbMsg").textContent = "Foto gagal dimuat. Coba lagi nanti."; });
+}
+function lbOpen(ids, i){ lb.ids = ids; lb.i = i; $("lb").classList.add("on"); document.documentElement.style.overflow = "hidden"; lbShow(); }
+function lbClose(){ lb.tok++; $("lb").classList.remove("on"); $("lbImg").removeAttribute("src"); document.documentElement.style.overflow = ""; }
+const lbGo = d => { if(lb.ids.length<2) return; lb.i = (lb.i+d+lb.ids.length) % lb.ids.length; lbShow(); };
+$("lbX").onclick = lbClose; $("lbP").onclick = () => lbGo(-1); $("lbN").onclick = () => lbGo(1);
+$("lb").onclick = e => { if(e.target.id==="lb") lbClose(); };
+$("lbDl").onclick = async () => { const id = lb.ids[lb.i];
+  try{ const data = await besar(id), a = document.createElement("a");
+    a.href = data; a.download = `foto_${id}.jpg`; document.body.appendChild(a); a.click(); a.remove(); }
+  catch(err){ toast("Gagal: "+err.message); } };
+document.addEventListener("keydown", e => { if(!$("lb").classList.contains("on")) return;
+  if(e.key==="Escape") lbClose(); else if(e.key==="ArrowLeft") lbGo(-1); else if(e.key==="ArrowRight") lbGo(1); });
+let tx = null;
+$("lb").addEventListener("touchstart", e => { tx = e.touches[0].clientX; }, {passive:true});
+$("lb").addEventListener("touchend", e => { if(tx==null) return; const dx = e.changedTouches[0].clientX - tx; tx = null;
+  if(Math.abs(dx)>60) lbGo(dx<0 ? 1 : -1); }, {passive:true});
+document.addEventListener("click", e => {
+  const a = e.target.closest("a[data-lb]"); if(!a) return;
+  e.preventDefault();
+  const ids = [...a.closest(".th").querySelectorAll("a[data-lb]")].map(x => x.dataset.lb);
+  lbOpen(ids, Math.max(0, ids.indexOf(a.dataset.lb)));
+});
 
 // ---------- Form ----------
 const formHtml = p => `
@@ -419,7 +612,7 @@ function renderRiwayat(){
   const rows = filtered(), pp = +$("pp").value, pages = Math.max(1, Math.ceil(rows.length/pp));
   if(page > pages) page = pages;
   const s = (page-1)*pp, slice = rows.slice(s, s+pp);
-  $("list").innerHTML = slice.map(card).join("") || `<div class="card muted" style="text-align:center">${D.length ? "Tidak ada data yang cocok dengan filter." : "Belum ada data. Mulai dari menu Input."}</div>`;
+  $("list").innerHTML = (loaded ? "" : statusBox()) || slice.map(card).join("") || `<div class="card muted" style="text-align:center">${D.length ? "Tidak ada data yang cocok dengan filter." : "Belum ada data. Mulai dari menu Input."}</div>`;
   $("count").textContent = rows.length ? `Menampilkan ${s+1}-${s+slice.length} dari ${rows.length} data` : "";
   $("pager").innerHTML = pages>1 ? `<button class="btn-s sm" data-act="pg" data-p="${page-1}" ${page===1?"disabled":""}>‹ Sebelumnya</button><span class="muted">Hal ${page} / ${pages}</span><button class="btn-s sm" data-act="pg" data-p="${page+1}" ${page===pages?"disabled":""}>Berikutnya ›</button>` : "";
 }
@@ -433,7 +626,7 @@ function spkInfo(id){
 }
 function renderSpk(){
   const rows = D.filter(r => r.status==="SPK").sort((a,b) => (spkInfo(a.id)?.d ?? 1e9) - (spkInfo(b.id)?.d ?? 1e9));
-  $("spkList").innerHTML = rows.map(r => { const i = spkInfo(r.id), c = i ? (i.d<0 ? "#b3372f" : i.d<=7 ? "#c98400" : "#1b7a4b") : "";
+  $("spkList").innerHTML = (loaded ? "" : statusBox()) || rows.map(r => { const i = spkInfo(r.id), c = i ? (i.d<0 ? "#b3372f" : i.d<=7 ? "#c98400" : "#1b7a4b") : "";
     return `<div class="rec" style="--c:${COL.SPK}">
     <div class="rh"><b>${esc(r.nama)}</b>${i ? `<span class="badge" style="--c:${c}">${i.txt}</span>` : `<span class="muted">Data SPK belum diisi</span>`}</div>
     <div class="rl">${hpCell(r.hp)}${mapBtns(r)}</div>
@@ -471,12 +664,12 @@ function renderDetail(){
   <div class="card" style="margin-top:10px"><div class="rh"><h2 style="margin:0">${esc(r.nama)}</h2>${badge(r.status)}</div>
     <p>${hpCell(r.hp)}<br>${esc(r.alamat)||"<span class='muted'>Alamat belum diisi</span>"}</p>
     <div class="rl">${mapBtns(r)}</div>
-    <div class="btn-row"><button class="btn-s" data-act="xls" data-id="${esc(r.id)}">Unduh Excel</button><button class="btn-s" data-act="pdf" data-id="${esc(r.id)}">Unduh PDF</button><button class="btn-s" data-act="allfoto" data-id="${esc(r.id)}">Unduh semua foto</button></div></div>
+    <div class="btn-row"><button class="btn-s" data-act="xls" data-id="${esc(r.id)}">Unduh Excel</button><button class="btn-s" data-act="pdf" data-id="${esc(r.id)}">Unduh PDF</button></div></div>
   <div class="card"><h2>Laporan kroscek baru</h2>${photoHtml("k_")}<label>Catatan</label><textarea id="k_cat" rows="3" maxlength="1500"></textarea>
     <p class="err" id="k_err"></p><button id="k_save" style="width:100%">Simpan laporan</button></div>
   ${spkSection(r)}
   <h2>Riwayat kroscek (${ks.length})</h2>
-  ${ks.map(k => `<div class="rec" style="--c:${COL.SPK}"><div class="rh"><b>${fmtTime(k.waktu)}</b><button class="btn-d sm" data-act="delk" data-id="${esc(k.id)}">Hapus</button></div>
+  ${ks.map(k => `<div class="rec" style="--c:${COL.SPK}"> <div class="rh" style="flex-wrap:wrap"><b>${fmtTime(k.waktu)}</b><span class="acts" style="margin:0">${k.foto.length ? `<button class="btn-s sm" data-act="kfoto" data-id="${esc(k.id)}">Unduh semua foto (${k.foto.length})</button>` : ""}<button class="btn-d sm" data-act="delk" data-id="${esc(k.id)}">Hapus</button></span></div>
     ${k.catatan ? `<div class="note">${esc(k.catatan)}</div>` : ""}${thumbs(k.foto,true)}</div>`).join("") || `<p class="muted">Belum ada laporan kroscek.</p>`}`;
   FK = initPhotos("k_");
   $("k_save").onclick = () => busy($("k_save"), async () => {
@@ -511,13 +704,15 @@ function showView(v){
   document.querySelectorAll(".nav[data-v]").forEach(b => b.classList.toggle("on", b.dataset.v === (v==="detail" ? "spk" : v)));
   scrollTo(0,0);
   if(v==="detail") renderDetail();
+  if(!loaded && !loading && password) muat();
   renderMap();
 }
 document.querySelectorAll(".nav[data-v]").forEach(b => b.onclick = () => showView(b.dataset.v));
 
 function renderAll(){
-  $("stF").innerHTML = `<option value="">Semua</option>` + STATUS.map(s => `<option>${s}</option>`).join("");
   renderDash(); renderRiwayat(); renderSpk();
+  if(!loaded) $("stats").innerHTML = statusBox();
+  document.querySelectorAll("#v-dash .two").forEach(x => x.classList.toggle("hidden", !loaded));
   if(cur==="detail") renderDetail(); renderMap();
 }
 $("stF").innerHTML = `<option value="">Semua</option>` + STATUS.map(s => `<option>${s}</option>`).join("");
@@ -532,6 +727,7 @@ document.addEventListener("click", async e => {
   const b = e.target.closest("[data-act]"); if(!b || b.disabled) return;
   const a = b.dataset.act, id = b.dataset.id, r = D.find(x => x.id===id);
   if(a==="pg"){ page = +b.dataset.p; renderRiwayat(); scrollTo(0,0); }
+  else if(a==="reload") muat();
   else if(a==="edit" && r) openEdit(r);
   else if(a==="promote" && r) promote(r);
   else if(a==="detail" && r){ detailId = id; showView("detail"); }
@@ -557,9 +753,9 @@ document.addEventListener("click", async e => {
     catch(err){ K.splice(i,0,k); renderDetail(); toast("Gagal menghapus: "+err.message); }
   }
   else if(a==="dlfoto") busy(b, () => downloadFoto(id).catch(err => toast("Gagal: "+err.message)));
-  else if(a==="allfoto" && r) busy(b, async () => {
-    const all = kOf(id).flatMap(k => k.foto); if(!all.length) return toast("Belum ada foto.");
-    try{ for(const f of all) await downloadFoto(f); }catch(err){ toast("Gagal: "+err.message); }
+  else if(a==="kfoto") busy(b, async () => {
+    const k = K.find(x => x.id===id), all = k ? k.foto : []; if(!all.length) return toast("Belum ada foto.");
+    try{ for(const f of all){ await downloadFoto(f); await new Promise(ok => setTimeout(ok,350)); } }catch(err){ toast("Gagal: "+err.message); }
   });
   else if(a==="xls" && r) exportSupplierXls(r);
   else if(a==="pdf" && r) busy(b, () => exportSupplierPdf(r).catch(err => toast("Gagal membuat PDF: "+err.message)));
