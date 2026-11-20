@@ -260,25 +260,6 @@ document.addEventListener("click", e => {
   lbOpen(ids, Math.max(0, ids.indexOf(a.dataset.lb)));
 });
 
-// ---------- Share WA (teks + foto lewat menu bagikan HP) ----------
-function kirimTeks(text) {
-  const u = "https://wa.me/?text=" + encodeURIComponent(text);
-  let w = null;
-  try {
-    w = window.open(u, "_blank");
-  } catch (e) {}
-  if (w) return;
-  const t = document.createElement("div");
-  t.className = "toast";
-  t.style.pointerEvents = "auto";
-  t.innerHTML = `<button type="button" class="sm">Kirim teks</button>`;
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), 60000);
-  t.firstChild.onclick = () => {
-    t.remove();
-    if (!window.open(u, "_blank")) location.href = u;
-  };
-}
 async function bagikan(text, ids) {
   try {
     if (ids.length && navigator.canShare) {
@@ -288,8 +269,7 @@ async function bagikan(text, ids) {
         files.push(new File([b], `foto_${id}.jpg`, { type: "image/jpeg" }));
       }
       if (navigator.canShare({ files })) {
-        await navigator.share({ files });
-        kirimTeks(text);
+        await navigator.share({ text, files });
         return;
       }
     }
