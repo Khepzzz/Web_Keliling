@@ -92,7 +92,6 @@
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; overflow-x: hidden; }
-/* Dot-grid dihapus untuk performa lebih ringan di mobile */
 body {
   margin: 0;
   min-height: 100vh;
@@ -325,6 +324,32 @@ label {
 .side-brand h1 { font-size: 1.05rem; font-weight: 800; margin: 0; color: var(--ink); letter-spacing: -0.02em; }
 .brand-sub { font-size: 0.7rem; color: var(--muted); display: block; }
 
+.nav {
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  text-align: left;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.9rem;
+  width: 100%;
+  justify-content: flex-start;
+}
+.nav:hover { background: var(--surface-subtle); color: var(--ink); transform: none; box-shadow: none; }
+.nav.on {
+  background: var(--brand);
+  color: #fff;
+  box-shadow: 0 3px 8px rgba(13, 148, 136, 0.35);
+}
+.nav > svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+}
 .side .out { margin-top: auto; color: var(--bad); }
 .side .out:hover { background: var(--bad-surface); color: var(--bad); }
 
@@ -346,6 +371,20 @@ main > h2, .view > h2, .view > .rh > h2 {
 .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 .btn-row > button { flex: 1; min-width: 130px; }
 
+/* ===== DASHBOARD 3-KOLOM EXECUTIVE GRID ===== */
+.dash-header { margin-bottom: 0; }
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 16px;
+  margin-top: 0;
+  align-items: start;
+}
+.dash-main { display: flex; flex-direction: column; gap: 16px; }
+.dash-main > .card { margin-bottom: 0; }
+.dash-side { display: flex; flex-direction: column; gap: 14px; }
+.dash-side > .card { margin-bottom: 0; }
+
 /* ===== DASHBOARD KPI & CHARTS ===== */
 .grid {
   display: grid;
@@ -364,10 +403,6 @@ main > h2, .view > h2, .view > .rh > h2 {
 }
 .stat b { display: block; font-size: 1.85rem; font-weight: 800; line-height: 1.2; letter-spacing: -0.02em; margin-top: 4px; color: var(--ink); }
 .stat.go:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
-
-.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
-.two > .card { margin-bottom: 0; }
-.two > .card:last-child:nth-child(odd) { grid-column: 1 / -1; }
 
 .bar { display: flex; align-items: center; gap: 10px; margin: 10px 0; font-size: 0.85rem; }
 .bar > span:first-child { width: 90px; flex: 0 0 auto; font-weight: 600; }
@@ -416,6 +451,17 @@ main > h2, .view > h2, .view > .rh > h2 {
   gap: 14px;
 }
 .route-box b { font-size: 0.98rem; color: var(--ink); }
+
+/* ===== FILTERS (RIWAYAT & SPK) ===== */
+.filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+.filters .full { grid-column: 1 / -1; }
+.filters label { margin-top: 0; }
+#v-spk > .rh { margin-bottom: 0; }
 
 /* ===== KARTU DATA (RIWAYAT & SUPPLIER) ===== */
 .rec {
@@ -505,29 +551,95 @@ a.abtn.wb { color: #16a34a; border-color: color-mix(in srgb, #16a34a 35%, transp
   background: rgba(15, 23, 42, 0.75);
   box-shadow: none;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.ph button svg {
+  width: 12px;
+  height: 12px;
+  stroke: #fff;
+  stroke-width: 2;
 }
 
-#lb { position: fixed; inset: 0; z-index: 300; display: none; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.94); overscroll-behavior: contain; }
+#lb {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  overscroll-behavior: contain;
+}
 #lb.on { display: flex; }
-#lb img { max-width: 94%; max-height: 88%; object-fit: contain; border-radius: 8px; }
+#lb img {
+  max-width: 92%;
+  max-height: 84%;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+}
 #lbMsg { position: absolute; color: #fff; font-size: 0.95rem; }
 .lbb {
   position: absolute;
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   padding: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   color: #fff;
-  border: 0;
-  box-shadow: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s, background 0.15s;
+  z-index: 10;
+}
+.lbb:hover {
+  background: rgba(15, 23, 42, 0.95);
+  transform: scale(1.08);
+}
+.lbb svg {
+  width: 18px;
+  height: 18px;
+  stroke: #ffffff;
+  stroke-width: 2;
+  flex: 0 0 18px;
 }
 #lbX { top: 16px; right: 16px; }
-#lbDl { top: 16px; right: 70px; }
-#lbP { left: 14px; top: 50%; margin-top: -22px; }
-#lbN { right: 14px; top: 50%; margin-top: -22px; }
+#lbDl { top: 16px; right: 62px; }
+#lbP { left: 16px; top: 50%; transform: translateY(-50%); }
+#lbN { right: 16px; top: 50%; transform: translateY(-50%); }
+.lbb#lbP:hover { transform: translateY(-50%) scale(1.08); }
+.lbb#lbN:hover { transform: translateY(-50%) scale(1.08); }
 
-/* ===== PETA & MODERN MAP POPUP (FOTO RUMAH) ===== */
+#lbC {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff;
+  padding: 5px 14px;
+  border-radius: 99px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  pointer-events: none;
+  z-index: 10;
+}
+#lbC:empty { display: none; }
+
+/* ===== PETA & MODERN MAP POPUP ===== */
 #map {
   height: 64vh;
   min-height: 380px;
@@ -540,7 +652,47 @@ a.abtn.wb { color: #16a34a; border-color: color-mix(in srgb, #16a34a 35%, transp
 .legend span { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 600; }
 .legend i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); display: inline-block; }
 
-/* Leaflet Popup Card Styling */
+.map-tile-toggle {
+  display: flex;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+}
+.tile-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  box-shadow: none;
+  transition: all 0.15s;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tile-btn svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tile-btn:hover { background: var(--surface); color: var(--ink); transform: none; box-shadow: none; }
+.tile-btn.on {
+  background: var(--brand);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(13, 148, 136, 0.3);
+}
+.tile-btn.on:hover { background: var(--brand-d); transform: none; }
+
 .leaflet-popup-content-wrapper {
   background: var(--surface);
   color: var(--ink);
@@ -552,6 +704,7 @@ a.abtn.wb { color: #16a34a; border-color: color-mix(in srgb, #16a34a 35%, transp
 }
 .leaflet-popup-content { margin: 0; line-height: 1.4; width: 260px !important; }
 .leaflet-popup-tip { background: var(--surface); border: 1px solid var(--border); }
+.leaflet-control-attribution a { color: var(--brand); }
 
 .map-card-thumb {
   width: 100%;
@@ -640,104 +793,53 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px)
 .chip.on { background: var(--brand); color: #fff; border-color: var(--brand); }
 .chip.ro { cursor: default; padding: 5px 12px; font-size: 0.82rem; }
 
-/* ===== RESPONSIVE & MOBILE ===== */
-@media (max-width: 760px) {
-  .app { display: block; }
+/* ===== DARK MODE TOGGLE BUTTON ===== */
+.dark-toggle {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.dark-toggle svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.dark-toggle:hover { background: var(--surface-subtle); color: var(--ink); transform: none; box-shadow: none; }
 
-  /* ---- Floating bottom dock: horizontal scroll, fixed height ---- */
-  .side {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    top: auto;
-    width: 100%;
-    height: auto;
-    margin: 0;
-    flex-direction: row;
-    padding: 6px 10px calc(6px + env(safe-area-inset-bottom));
-    border-radius: 20px 20px 0 0;
-    z-index: 100;
-    gap: 2px;
-    background: var(--surface);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.18);
-    border: 1px solid var(--border);
-    border-bottom: none;
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-  .side::-webkit-scrollbar { display: none; }
+/* ===== UNIFIED SVG ICON STYLE ===== */
+.nav svg,
+button svg,
+.lbb svg,
+.auth-logo svg,
+.brand-icon svg,
+.pw-icon svg,
+.eye svg,
+.map-card-acts svg,
+.tile-btn svg,
+.dark-toggle svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 
-  /* Hide desktop-only elements */
-  .side-brand, .side .out, .sync-badge { display: none; }
-
-  /* Nav items: fixed width, don't shrink */
-  .nav {
-    flex: 0 0 auto;
-    min-width: 60px;
-    flex-direction: column;
-    gap: 3px;
-    padding: 7px 8px;
-    font-size: 0.65rem;
-    text-align: center;
-    justify-content: center;
-    border-radius: 14px;
-    white-space: nowrap;
-  }
-  .nav svg { width: 20px; height: 20px; }
-
-  /* Dark toggle — tampil di mobile dock juga */
-  .dark-toggle {
-    display: flex;
-    margin-top: 0;
-    min-width: 56px;
-  }
-
-  main {
-    padding: calc(16px + env(safe-area-inset-top)) 14px calc(90px + env(safe-area-inset-bottom));
-  }
-
-  /* Dashboard grid → single col */
-  .dash-grid { grid-template-columns: 1fr; }
-  .dash-side { gap: 12px; }
-  .two { grid-template-columns: 1fr; }
-
-  /* Route bar → stack */
-  .route-box { flex-direction: column; align-items: flex-start; }
-  .route-box button { width: 100%; }
-
-  /* Dialog → bottom sheet */
-  dialog {
-    margin: auto auto 0;
-    width: 100%;
-    max-width: none;
-    border-radius: 24px 24px 0 0;
-    padding-bottom: calc(22px + env(safe-area-inset-bottom));
-  }
-  .toast { bottom: calc(80px + env(safe-area-inset-bottom)); }
-
-  /* Map tile toggle → tetap tampil di mobile tapi lebih kecil */
-  .map-tile-toggle { display: flex; }
-  #v-peta .rh { flex-wrap: wrap; gap: 10px; }
-
-  /* Filter Riwayat → 2-kolom di mobile */
-  .filters {
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-  .filters .full { grid-column: 1 / -1; }
-
-  /* SPK search card → compact */
-  #v-spk > .card { padding: 12px 14px; }
-
-  /* KPI stat cards: 2 kolom di mobile */
-  .grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-  .stat { padding: 12px 14px; }
-  .stat b { font-size: 1.5rem; }
+svg.ico {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: -2px;
+  display: inline;
+  flex-shrink: 0;
+  margin-right: 3px;
 }
 
 /* ===== SKELETON SCREEN SHIMMER EFFECT ===== */
@@ -802,162 +904,108 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px)
   margin-top: 6px;
 }
 
-
-/* ===== DASHBOARD 3-KOLOM EXECUTIVE GRID ===== */
-.dash-header { margin-bottom: 0; }
-.dash-grid {
-  display: grid;
-  grid-template-columns: 1fr 340px;
-  gap: 16px;
-  margin-top: 0;
-  align-items: start;
-}
-.dash-main { display: flex; flex-direction: column; gap: 16px; }
-.dash-main > .card { margin-bottom: 0; }
-.dash-side { display: flex; flex-direction: column; gap: 14px; }
-.dash-side > .card { margin-bottom: 0; }
-
-/* ===== MAP TILE TOGGLE (Normal / Satelit) ===== */
-.map-tile-toggle {
-  display: flex;
-  background: var(--surface-subtle);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 3px;
-  gap: 2px;
-}
-.tile-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  background: transparent;
-  color: var(--muted);
-  border: none;
-  box-shadow: none;
-  transition: all 0.15s;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.tile-btn svg {
-  width: 15px;
-  height: 15px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.tile-btn:hover { background: var(--surface); color: var(--ink); transform: none; box-shadow: none; }
-.tile-btn.on {
-  background: var(--brand);
-  color: #fff;
-  box-shadow: 0 2px 6px rgba(13, 148, 136, 0.3);
-}
-.tile-btn.on:hover { background: var(--brand-d); transform: none; }
-
-/* ===== DARK MODE TOGGLE BUTTON ===== */
-.dark-toggle {
-  margin-top: 4px;
-  color: var(--muted);
-  font-size: 0.82rem;
-}
-.dark-toggle svg {
-  width: 17px;
-  height: 17px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.dark-toggle:hover { background: var(--surface-subtle); color: var(--ink); transform: none; box-shadow: none; }
-
-/* ===== UNIFIED SVG ICON STYLE ===== */
-/* All nav and card SVGs — consistent stroke, no fill */
-.nav svg,
-button svg,
-.lbb svg,
-.auth-logo svg,
-.brand-icon svg,
-.pw-icon svg,
-.eye svg,
-.map-card-acts svg,
-.tile-btn svg,
-.dark-toggle svg {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-/* Inline icon (.ico) — kecil, inline, sejajar dengan teks */
-svg.ico {
-  width: 14px;
-  height: 14px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  vertical-align: -2px;
-  display: inline;
-  flex-shrink: 0;
-  margin-right: 3px;
-}
-
-/* Sidebar nav — strict alignment agar semua items lurus */
-.nav {
-  background: transparent;
-  box-shadow: none;
-  color: var(--muted);
-  text-align: left;
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
-  font-weight: 600;
-  font-size: 0.9rem;
-  width: 100%;
-  justify-content: flex-start;
-}
-.nav:hover { background: var(--surface-subtle); color: var(--ink); transform: none; box-shadow: none; }
-.nav.on {
-  background: var(--brand);
-  color: #fff;
-  box-shadow: 0 3px 8px rgba(13, 148, 136, 0.35);
-}
-/* Nav SVG: semua sama besar, tidak shrink, tidak stretch */
-.nav > svg {
-  width: 18px;
-  height: 18px;
-  flex: 0 0 18px;
-}
-
-/* ===== FILTERS ROW (Riwayat & SPK) ===== */
-.filters {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 10px;
-  align-items: end;
-}
-.filters .full { grid-column: 1 / -1; }
-.filters label { margin-top: 0; }
-
-/* ===== SPK SEARCH HEADER ===== */
-#v-spk > .rh { margin-bottom: 0; }
-
-/* ===== RESPONSIVE DASHBOARD GRID ===== */
+/* ===== RESPONSIVE TABLET ===== */
 @media (max-width: 1024px) {
   .dash-grid {
     grid-template-columns: 1fr 280px;
   }
 }
 
-/* ===== LEAFLET MAP TILE ATTRIBUTION FIX ===== */
-.leaflet-control-attribution a { color: var(--brand); }
+/* ===== RESPONSIVE MOBILE (PHONE) ===== */
+@media (max-width: 760px) {
+  .app { display: block; }
+
+  /* Floating bottom dock: horizontal scroll, fixed height */
+  .side {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    width: 100%;
+    height: auto;
+    margin: 0;
+    flex-direction: row;
+    padding: 6px 10px calc(6px + env(safe-area-inset-bottom));
+    border-radius: 20px 20px 0 0;
+    z-index: 100;
+    gap: 2px;
+    background: var(--surface);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.18);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .side::-webkit-scrollbar { display: none; }
+
+  /* Hide desktop-only elements */
+  .side-brand, .side .out, .sync-badge { display: none; }
+
+  /* Nav items: compact for thumb navigation */
+  .nav {
+    flex: 0 0 auto;
+    min-width: 60px;
+    flex-direction: column;
+    gap: 3px;
+    padding: 7px 8px;
+    font-size: 0.65rem;
+    text-align: center;
+    justify-content: center;
+    border-radius: 14px;
+    white-space: nowrap;
+  }
+  .nav svg { width: 20px; height: 20px; }
+
+  /* Dark toggle di mobile dock */
+  .dark-toggle {
+    display: flex;
+    margin-top: 0;
+    min-width: 56px;
+  }
+
+  main {
+    padding: calc(16px + env(safe-area-inset-top)) 14px calc(90px + env(safe-area-inset-bottom));
+  }
+
+  /* Dashboard grid strictly single column on mobile */
+  .dash-grid { grid-template-columns: 1fr; }
+  .dash-side { gap: 12px; }
+
+  /* Route bar */
+  .route-box { flex-direction: column; align-items: flex-start; }
+  .route-box button { width: 100%; }
+
+  /* Dialog: bottom sheet on phone */
+  dialog {
+    margin: auto auto 0;
+    width: 100%;
+    max-width: none;
+    border-radius: 24px 24px 0 0;
+    padding-bottom: calc(22px + env(safe-area-inset-bottom));
+  }
+  .toast { bottom: calc(80px + env(safe-area-inset-bottom)); }
+
+  /* Map toggle on mobile */
+  .map-tile-toggle { display: flex; }
+  #v-peta .rh { flex-wrap: wrap; gap: 10px; }
+
+  /* Filter Riwayat: 2-kolom rapi di mobile */
+  .filters {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .filters .full { grid-column: 1 / -1; }
+
+  /* SPK search card compact */
+  #v-spk > .card { padding: 12px 14px; }
+
+  /* KPI stat cards: 2 kolom di mobile */
+  .grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .stat { padding: 12px 14px; }
+  .stat b { font-size: 1.5rem; }
+}
