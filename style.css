@@ -1009,3 +1009,185 @@ svg.ico {
   .stat { padding: 12px 14px; }
   .stat b { font-size: 1.5rem; }
 }
+
+
+/* ===== PERBAIKAN MOBILE v2 (tempel di PALING BAWAH style.css) ===== */
+
+/* Kolom kartu tidak boleh melebar mengikuti isi (penyebab overflow + zoom-out) */
+.rec { grid-template-columns: minmax(0, 1fr); }
+.rec > * { min-width: 0; }
+.rh { flex-wrap: wrap; }
+.rh > b, .rh > h2 { min-width: 0; overflow-wrap: anywhere; }
+.rec .muted, .rec .note, .li > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.badge { white-space: normal; max-width: 100%; line-height: 1.3; border-radius: 14px; }
+.filters > div { min-width: 0; }
+
+/* Top bar: tersembunyi di desktop */
+.topbar { display: none; }
+.tb-brand { display: flex; align-items: center; gap: 8px; color: var(--ink); }
+.tb-brand b { font-size: 1rem; font-weight: 800; letter-spacing: -0.02em; }
+.tb-brand svg { width: 20px; height: 20px; fill: none; stroke: var(--brand); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.tb-badge {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+  font-size: 0.7rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tb-badge.syncing { color: var(--brand); font-weight: 700; }
+.tb-badge.pending { color: var(--bad); font-weight: 700; }
+.tb-btn {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+.tb-btn:hover { background: var(--surface-subtle); transform: none; box-shadow: none; }
+.tb-btn svg { width: 18px; height: 18px; }
+.tb-out { color: var(--bad); }
+
+@media (max-width: 760px) {
+  /* Font 16px: iOS tidak zoom-in lagi saat kolom diketuk */
+  input, select, textarea { font-size: 16px; }
+
+  /* Input tanggal iOS: tidak keluar dari kartu */
+  input[type="date"] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 44px;
+    text-align: left;
+  }
+  input[type="date"]::-webkit-date-and-time-value { text-align: left; min-height: 1.4em; }
+
+  /* Top bar */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: sticky;
+    top: 0;
+    z-index: 90;
+    padding: calc(8px + env(safe-area-inset-top)) 14px 8px;
+    background: color-mix(in srgb, var(--bg) 90%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+  }
+  main { padding: 14px 14px calc(76px + env(safe-area-inset-bottom)); }
+
+  /* Dock bawah: 5 tab sama lebar, lebih ramping */
+  .side {
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    gap: 0;
+    border-radius: 18px 18px 0 0;
+    overflow: visible;
+  }
+  .side #syncBtn, .side #darkBtn, .side #logoutBtn, .side #syncBadge { display: none; }
+  .nav[data-v] {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 6px 2px;
+    gap: 2px;
+    font-size: 0.68rem;
+    border-radius: 12px;
+  }
+  .nav[data-v] svg { width: 22px; height: 22px; flex: 0 0 22px; }
+}
+
+/* ===== Kartu SPK (blok .spkb) ===== */
+.spkb {
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.spkb > .rh b { font-size: 1rem; }
+.spkb .acts { margin-top: 2px; }
+.spkb .acts > .muted {
+  flex: 1 1 100%;
+  font-size: 0.78rem;
+  opacity: 0.85;
+}
+
+/* ===== Angka target (.sg) ===== */
+.sg {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.sg > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.76rem;
+  line-height: 1.3;
+  color: var(--muted);
+}
+.sg > div b {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+.sg > div:last-child {
+  background: var(--brand-surface);
+  border-color: var(--brand);
+}
+.sg > div:last-child b { color: var(--brand); }
+.sg > div.bad b { color: var(--bad); }
+@media (min-width: 640px) {
+  .sg { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+
+/* ===== Daftar pengambilan (.ev) ===== */
+.ev {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--border);
+  font-size: 0.9rem;
+}
+.ev:last-child { border-bottom: 0; }
+.ev > span { min-width: 0; overflow-wrap: anywhere; }
+
+/* ===== Foto menunggu / gagal ===== */
+img.ph-wait {
+  color: transparent;
+  background: linear-gradient(90deg, var(--surface-subtle) 25%, var(--border) 50%, var(--surface-subtle) 75%);
+  background-size: 200% 100%;
+  animation: phShimmer 1.2s linear infinite;
+}
+@keyframes phShimmer { to { background-position: -200% 0; } }
+img.ph-fail {
+  color: transparent;
+  background: var(--bad-surface);
+  border: 1px dashed var(--bad);
+  cursor: pointer;
+}
+
+/* ===== Tautan ===== */
+.lnk {
+  color: var(--brand);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
