@@ -63,11 +63,16 @@
     <button class="nav" id="syncBtn" title="Sinkronkan data dengan server"><svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg><span id="syncText">Segarkan</span></button>
     <div id="syncBadge" class="sync-badge">Data lokal aktif</div>
     <button class="nav out" id="logoutBtn"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Keluar</button>
+    <button class="nav dark-toggle" id="darkBtn" title="Toggle dark/light mode"><svg viewBox="0 0 24 24" id="darkIcon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><span id="darkLabel">Dark</span></button>
   </nav>
   <main>
     <section id="v-dash" class="view">
-      <div class="rh"><h2 style="margin:0">Dashboard</h2>
-        <select id="period" style="width:auto"><option value="7">7 hari</option><option value="30" selected>30 hari</option><option value="90">90 hari</option><option value="0">Semua</option></select></div>
+      <div class="dash-header">
+        <div class="rh" style="margin-bottom:0">
+          <h2 style="margin:0">Dashboard</h2>
+          <select id="period" style="width:auto"><option value="7">7 hari</option><option value="30" selected>30 hari</option><option value="90">90 hari</option><option value="0">Semua</option></select>
+        </div>
+      </div>
       <div id="routeBar" class="route-box hidden">
         <div>
           <b>📍 Rencana Kunjungan Hari Ini</b>
@@ -76,16 +81,18 @@
         <button type="button" class="btn-s sm" id="openRouteBtn">Buka Rute di Google Maps</button>
       </div>
       <div class="grid" id="stats" style="margin-top:12px"></div>
-      <div class="two">
-        <div class="card"><h2>Klien per status</h2><div id="barStatus"></div></div>
-        <div class="card"><h2>Data baru per minggu</h2><div class="wk" id="wk"></div></div>
-      </div>
-      <div class="two">
-        <div class="card"><h2>Perlu di-follow-up</h2><div id="fuList"></div></div>
-        <div class="card"><h2>Jadwal kroscek</h2><div id="kJadwal"></div></div>
-        <div class="card"><h2>Barang di service</h2><div id="svcList"></div></div>
-        <div class="card"><h2>SPK mau jatuh tempo</h2><div id="spkDue"></div></div>
-        <div class="card"><h2>Aktivitas terbaru</h2><div id="recent"></div></div>
+      <div class="dash-grid">
+        <div class="dash-main">
+          <div class="card"><h2>Klien per status</h2><div id="barStatus"></div></div>
+          <div class="card"><h2>Data baru per minggu</h2><div class="wk" id="wk"></div></div>
+          <div class="card"><h2>Aktivitas terbaru</h2><div id="recent"></div></div>
+        </div>
+        <div class="dash-side">
+          <div class="card"><h2>Perlu di-follow-up</h2><div id="fuList"></div></div>
+          <div class="card"><h2>Jadwal kroscek</h2><div id="kJadwal"></div></div>
+          <div class="card"><h2>Barang di service</h2><div id="svcList"></div></div>
+          <div class="card"><h2>SPK mau jatuh tempo</h2><div id="spkDue"></div></div>
+        </div>
       </div>
     </section>
 
@@ -112,7 +119,13 @@
     </section>
 
     <section id="v-spk" class="view hidden">
-      <h2>Supplier SPK</h2>
+      <div class="rh"><h2 style="margin:0">Supplier SPK</h2></div>
+      <div class="card" style="padding:14px 18px;margin-bottom:12px">
+        <div class="filters">
+          <div class="full"><label for="spkQ">Cari Supplier</label><input id="spkQ" type="search" placeholder="Nama supplier..."></div>
+          <div><label for="spkSort">Urutkan</label><select id="spkSort"><option value="due">Jatuh tempo</option><option value="nama">Nama A–Z</option><option value="quality">Kualitas terbaik</option></select></div>
+        </div>
+      </div>
       <div id="spkList"></div>
     </section>
 
@@ -120,7 +133,22 @@
     <section id="v-spkd" class="view hidden"></section>
 
     <section id="v-peta" class="view hidden">
-      <div class="rh"><h2 style="margin:0">Peta</h2><select id="mapSt" style="width:auto"></select></div>
+      <div class="rh">
+        <h2 style="margin:0">Peta</h2>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select id="mapSt" style="width:auto"></select>
+          <div class="map-tile-toggle">
+            <button class="tile-btn on" id="tileNormal" title="Tampilan normal">
+              <svg viewBox="0 0 24 24"><path d="M3 6l9-3 9 3M3 6v13l9 3 9-3V6M12 3v16"/><path d="M3 12l9 3 9-3"/></svg>
+              Normal
+            </button>
+            <button class="tile-btn" id="tileSatelit" title="Tampilan satelit">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M2 12h4M18 12h4M12 2v4M12 18v4"/></svg>
+              Satelit
+            </button>
+          </div>
+        </div>
+      </div>
       <div class="legend" id="legend"></div>
       <div id="map"></div>
       <p class="muted" id="mapInfo"></p>

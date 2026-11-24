@@ -25,8 +25,9 @@
   --radius-sm: 10px;
 }
 
+/* Dark mode via OS preference */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #0b0f19;
     --surface: #111827;
     --surface-subtle: #1e293b;
@@ -45,6 +46,48 @@
     --shadow: 0 4px 16px -2px rgb(0 0 0 / 0.4);
     --shadow-lg: 0 12px 30px -4px rgb(0 0 0 / 0.5);
   }
+}
+
+/* Dark mode via manual toggle */
+[data-theme="dark"] {
+  --bg: #0b0f19;
+  --surface: #111827;
+  --surface-subtle: #1e293b;
+  --field: #1e293b;
+  --ink: #f8fafc;
+  --muted: #94a3b8;
+  --border: #334155;
+  --border-focus: #14b8a6;
+  --line: #475569;
+  --brand: #14b8a6;
+  --brand-d: #2dd4bf;
+  --brand-surface: rgba(20, 184, 166, 0.12);
+  --bad: #f43f5e;
+  --bad-surface: rgba(244, 63, 94, 0.12);
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow: 0 4px 16px -2px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 12px 30px -4px rgb(0 0 0 / 0.5);
+}
+
+/* Light mode forced override */
+[data-theme="light"] {
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface-subtle: #f1f5f9;
+  --field: #f8fafc;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --border-focus: #0d9488;
+  --line: #cbd5e1;
+  --brand: #0d9488;
+  --brand-d: #0f766e;
+  --brand-surface: #f0fdfa;
+  --bad: #e11d48;
+  --bad-surface: #fff1f2;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow: 0 4px 12px -2px rgb(15 23 42 / 0.08), 0 2px 6px -1px rgb(15 23 42 / 0.04);
+  --shadow-lg: 0 12px 28px -4px rgb(15 23 42 / 0.12), 0 4px 10px -2px rgb(15 23 42 / 0.06);
 }
 
 * { box-sizing: border-box; }
@@ -731,3 +774,124 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px)
   margin-top: 6px;
 }
 
+
+/* ===== DASHBOARD 3-KOLOM EXECUTIVE GRID ===== */
+.dash-header { margin-bottom: 0; }
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 16px;
+  margin-top: 0;
+  align-items: start;
+}
+.dash-main { display: flex; flex-direction: column; gap: 16px; }
+.dash-main > .card { margin-bottom: 0; }
+.dash-side { display: flex; flex-direction: column; gap: 14px; }
+.dash-side > .card { margin-bottom: 0; }
+
+/* ===== MAP TILE TOGGLE (Normal / Satelit) ===== */
+.map-tile-toggle {
+  display: flex;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+}
+.tile-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  box-shadow: none;
+  transition: all 0.15s;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tile-btn svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tile-btn:hover { background: var(--surface); color: var(--ink); transform: none; box-shadow: none; }
+.tile-btn.on {
+  background: var(--brand);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(13, 148, 136, 0.3);
+}
+.tile-btn.on:hover { background: var(--brand-d); transform: none; }
+
+/* ===== DARK MODE TOGGLE BUTTON ===== */
+.dark-toggle {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.dark-toggle svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.dark-toggle:hover { background: var(--surface-subtle); color: var(--ink); transform: none; box-shadow: none; }
+
+/* ===== UNIFIED SVG ICON STYLE ===== */
+/* All nav and card SVG icons — consistent 2px stroke, round caps */
+.nav svg,
+button svg,
+.lbb svg,
+.auth-logo svg,
+.brand-icon svg,
+.pw-icon svg,
+.eye svg,
+.map-card-acts svg {
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ===== FILTERS ROW (Riwayat & SPK) ===== */
+.filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+.filters .full { grid-column: 1 / -1; }
+.filters label { margin-top: 0; }
+
+/* ===== SPK SEARCH HEADER ===== */
+#v-spk > .rh { margin-bottom: 0; }
+
+/* ===== RESPONSIVE DASHBOARD GRID ===== */
+@media (max-width: 1024px) {
+  .dash-grid {
+    grid-template-columns: 1fr 280px;
+  }
+}
+@media (max-width: 760px) {
+  .dash-grid {
+    grid-template-columns: 1fr;
+  }
+  .dash-side { gap: 12px; }
+  .map-tile-toggle { display: none; } /* Hide on mobile, tap-based map already works */
+  .tile-btn { padding: 5px 10px; font-size: 0.75rem; }
+  #v-peta .rh { flex-wrap: wrap; gap: 10px; }
+  .dark-toggle { display: none; } /* Hidden from mobile dock — space constraint */
+}
+
+/* ===== LEAFLET MAP TILE ATTRIBUTION FIX ===== */
+.leaflet-control-attribution a { color: var(--brand); }

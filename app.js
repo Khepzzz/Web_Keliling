@@ -1,4 +1,4 @@
-// Ganti dengan URL Web App Apps Script (berakhiran /exec)
+﻿﻿﻿﻿// Ganti dengan URL Web App Apps Script (berakhiran /exec)
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx7BaH87ogbbpuKYctBx8k1lRjJd1yFM0SttL2hPoiqEj7y7mX90tNCidWPRY6lZl4v/exec";
 
 const STATUS = ["Menolak","Ragu-ragu","Tertarik","Siap Ambil","SPK"];
@@ -122,7 +122,12 @@ function updateSyncStatus(st){
     el.textContent = "Mode Offline (Data lokal)";
   }else{
     el.className = "sync-badge";
-    el.textContent = "Data lokal aktif & siap";
+    if (typeof lastSyncTime !== 'undefined' && lastSyncTime) {
+      const m = Math.floor((Date.now() - lastSyncTime) / 60000);
+      el.textContent = m < 1 ? "Tersinkron barusan" : m < 60 ? "Sinkron " + m + " mnt lalu" : "Sinkron " + Math.floor(m/60) + " jam lalu";
+    } else {
+      el.textContent = "Data lokal aktif & siap";
+    }
   }
 }
 
@@ -254,6 +259,7 @@ async function muat(silent = false){
     D = r.data; K = r.kroscek; S = r.spk || []; A = r.ambil || [];
     loaded = true; loadErr = "";
     saveToLocalCache();
+    lastSyncTime = Date.now();
     updateSyncStatus("synced");
     drainOfflineQueue();
   }else{
@@ -1089,14 +1095,29 @@ function kualitasSupplier(sid) {
   return { total, totalLolos, totalSvc, totalRej, pLolos, pSvc, pRej };
 }
 
+function spkFiltered() {
+  const q = ($("spkQ") ? $("spkQ").value : "").toLowerCase().trim();
+  const sort = $("spkSort") ? $("spkSort").value : "due";
+  let rows = D.filter(r => r.status === "SPK");
+  if (q) rows = rows.filter(r => [r.nama, r.alamat, r.hp].join(" ").toLowerCase().includes(q));
+  if (sort === "due") {
+    rows = rows.sort((a, b) => {
+      const f = x => { const i = spkInfo(x.id); return i ? (i.done ? 1e8 : i.d) : 1e9; };
+      return f(a) - f(b);
+    });
+  } else if (sort === "nama") {
+    rows = rows.sort((a, b) => (a.nama || "").localeCompare(b.nama || "", "id"));
+  } else if (sort === "quality") {
+    rows = rows.sort((a, b) => {
+      const qa = kualitasSupplier(a.id), qb = kualitasSupplier(b.id);
+      return (qb ? qb.pLolos : 0) - (qa ? qa.pLolos : 0);
+    });
+  }
+  return rows;
+}
+
 function renderSpk() {
-  const rows = D.filter((r) => r.status === "SPK").sort((a, b) => {
-    const f = (x) => {
-      const i = spkInfo(x.id);
-      return i ? (i.done ? 1e8 : i.d) : 1e9;
-    };
-    return f(a) - f(b);
-  });
+  const rows = spkFiltered();
   $("spkList").innerHTML =
     (loaded ? "" : statusBox()) ||
     rows
@@ -1330,16 +1351,46 @@ function renderSpkDetail() {
 }
 
 // ---------- Peta ----------
-let map, layer;
+let map, layer, tileNormalLayer, tileSatelitLayer, mapMode = "normal";
+
+const TILES = {
+  normal: {
+    url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attr: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19
+  },
+  satelit: {
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    attr: "Tiles &copy; Esri &mdash; Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
+    maxZoom: 19
+  }
+};
+
+function switchMapTile(mode) {
+  if (!map) return;
+  mapMode = mode;
+  if (tileNormalLayer) map.removeLayer(tileNormalLayer);
+  if (tileSatelitLayer) map.removeLayer(tileSatelitLayer);
+  const t = TILES[mode];
+  const newTile = L.tileLayer(t.url, { maxZoom: t.maxZoom, attribution: t.attr });
+  newTile.addTo(map);
+  if (mode === "normal") tileNormalLayer = newTile;
+  else tileSatelitLayer = newTile;
+  document.querySelectorAll(".tile-btn").forEach(b => b.classList.remove("on"));
+  const btn = mode === "normal" ? $("tileNormal") : $("tileSatelit");
+  if (btn) btn.classList.add("on");
+}
+
 function renderMap() {
   if (cur !== "peta") return;
   if (!map) {
     map = L.map("map").setView([-6.6, 110.7], 8);
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: "© OpenStreetMap",
-    }).addTo(map);
+    tileNormalLayer = L.tileLayer(TILES.normal.url, { maxZoom: 19, attribution: TILES.normal.attr }).addTo(map);
     layer = L.layerGroup().addTo(map);
+    // Wire tile toggle buttons
+    const tn = $("tileNormal"), ts = $("tileSatelit");
+    if (tn) tn.onclick = () => switchMapTile("normal");
+    if (ts) ts.onclick = () => switchMapTile("satelit");
   }
   setTimeout(() => map.invalidateSize(), 60);
   layer.clearLayers();
@@ -1445,7 +1496,7 @@ function renderAll() {
     $("list").innerHTML = skeletonCards(4);
     $("spkList").innerHTML = skeletonCards(3);
     document
-      .querySelectorAll("#v-dash .two")
+      .querySelectorAll("#v-dash .dash-grid")
       .forEach((x) => x.classList.add("hidden"));
     return;
   }
@@ -1454,7 +1505,7 @@ function renderAll() {
   aman(renderSpk);
   if (!loaded) $("stats").innerHTML = statusBox();
   document
-    .querySelectorAll("#v-dash .two")
+    .querySelectorAll("#v-dash .dash-grid")
     .forEach((x) => x.classList.toggle("hidden", !loaded));
   if (cur === "detail" && !document.querySelector("dialog[open]"))
     aman(renderDetail);
@@ -1487,6 +1538,94 @@ if ($("resetFilterBtn")) $("resetFilterBtn").onclick = () => {
   renderRiwayat();
 };
 
+// SPK Search & Sort
+if ($("spkQ")) $("spkQ").oninput = renderSpk;
+if ($("spkSort")) $("spkSort").onchange = renderSpk;
+
+// ===== DARK MODE TOGGLE =====
+(function initDarkMode() {
+  const DARK_KEY = "keliling_dark_mode";
+  const root = document.documentElement;
+  let isDark = localStorage.getItem(DARK_KEY);
+  if (isDark === null) isDark = window.matchMedia("(prefers-color-scheme: dark)").matches ? "1" : "0";
+  function applyDark(val) {
+    if (val === "1") {
+      root.setAttribute("data-theme", "dark");
+      const icon = $("darkIcon");
+      if (icon) icon.innerHTML = "<circle cx='12' cy='12' r='5'/><path d='M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42'/>";
+      const lbl = $("darkLabel"); if (lbl) lbl.textContent = "Light";
+    } else {
+      root.removeAttribute("data-theme");
+      const icon = $("darkIcon");
+      if (icon) icon.innerHTML = "<path d='M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z'/>";
+      const lbl = $("darkLabel"); if (lbl) lbl.textContent = "Dark";
+    }
+  }
+  applyDark(isDark);
+  const btn = $("darkBtn");
+  if (btn) btn.onclick = () => {
+    isDark = isDark === "1" ? "0" : "1";
+    localStorage.setItem(DARK_KEY, isDark);
+    applyDark(isDark);
+  };
+})();
+
+// ===== SYNC TIMESTAMP =====
+let lastSyncTime = null;
+function updateSyncTimestamp() {
+  lastSyncTime = Date.now();
+  updateSyncBadgeTime();
+}
+function updateSyncBadgeTime() {
+  const badge = $("syncBadge");
+  if (!badge || !lastSyncTime) return;
+  const mins = Math.floor((Date.now() - lastSyncTime) / 60000);
+  if (badge.classList.contains("syncing") || badge.classList.contains("pending")) return;
+  if (mins < 1) badge.textContent = "Tersinkron barusan";
+  else if (mins < 60) badge.textContent = "Sinkron " + mins + " mnt lalu";
+  else badge.textContent = "Sinkron " + Math.floor(mins / 60) + " jam lalu";
+}
+setInterval(updateSyncBadgeTime, 60000);
+
+// ===== PULL TO REFRESH =====
+(function initPullToRefresh() {
+  let startY = 0, pulling = false, indicator = null;
+  function createIndicator() {
+    if (indicator) return;
+    indicator = document.createElement("div");
+    indicator.id = "pullIndicator";
+    indicator.innerHTML = '<svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:var(--brand);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg><span>Tarik untuk segarkan</span>';
+    indicator.style.cssText = "position:fixed;top:0;left:50%;transform:translateX(-50%) translateY(-70px);transition:transform 0.2s;z-index:999;background:var(--surface);border:1px solid var(--border);border-radius:0 0 20px 20px;padding:12px 22px;display:flex;align-items:center;gap:10px;font-size:0.85rem;font-weight:600;color:var(--muted);box-shadow:var(--shadow-lg);";
+    document.body.appendChild(indicator);
+  }
+  document.addEventListener("touchstart", e => {
+    if (window.scrollY > 10) return;
+    startY = e.touches[0].clientY;
+    pulling = true;
+  }, { passive: true });
+  document.addEventListener("touchmove", e => {
+    if (!pulling) return;
+    const dy = e.touches[0].clientY - startY;
+    if (dy > 20) {
+      createIndicator();
+      const pct = Math.min(dy / 80, 1);
+      indicator.style.transform = "translateX(-50%) translateY(" + ((pct - 1) * 70 + 70) + "px)";
+      indicator.querySelector("span").textContent = dy > 70 ? "Lepaskan untuk segarkan" : "Tarik untuk segarkan";
+      indicator.querySelector("svg").style.transform = "rotate(" + (pct * 180) + "deg)";
+    }
+  }, { passive: true });
+  document.addEventListener("touchend", e => {
+    if (!pulling || !indicator) { pulling = false; return; }
+    const dy = e.changedTouches[0].clientY - startY;
+    if (dy > 70) {
+      indicator.querySelector("span").textContent = "Menyegarkan...";
+      muat(false);
+    }
+    indicator.style.transform = "translateX(-50%) translateY(-70px)";
+    setTimeout(() => { if (indicator) { indicator.remove(); indicator = null; } }, 350);
+    pulling = false;
+  });
+})();
 document.addEventListener("click", async (e) => {
   const b = e.target.closest("[data-act]");
   if (!b || b.disabled) return;
