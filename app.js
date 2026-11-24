@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿// Ganti dengan URL Web App Apps Script (berakhiran /exec)
+﻿﻿﻿﻿﻿﻿﻿// Ganti dengan URL Web App Apps Script (berakhiran /exec)
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx7BaH87ogbbpuKYctBx8k1lRjJd1yFM0SttL2hPoiqEj7y7mX90tNCidWPRY6lZl4v/exec";
 
 const STATUS = ["Menolak","Ragu-ragu","Tertarik","Siap Ambil","SPK"];
@@ -1403,18 +1403,18 @@ function renderMap() {
     const thumbUrl = fotoId ? thumb(fotoId, 400) : "";
     const popupHtml = `
       <div class="map-card-thumb">
-        ${fotoId ? `<img src="${thumbUrl}" alt="Foto ${esc(r.nama)}" onerror="this.onerror=null;this.src='${PIXEL}';this.parentElement.style.display='none';">` : `<div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:0.8rem">📷 Belum ada foto rumah</div>`}
+        ${fotoId ? `<img src="${thumbUrl}" alt="Foto ${esc(r.nama)}" onerror="this.onerror=null;this.src='${PIXEL}';this.parentElement.style.display='none';">` : `<div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:0.8rem"><svg class="ico" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Belum ada foto rumah</div>`}
         <span class="badge map-card-badge" style="--c:${COL[r.status] || '#0d9488'}">${esc(r.status)}</span>
       </div>
       <div class="map-card-body">
         <b>${esc(r.nama)}</b>
         <div class="map-card-meta">
-          ${r.alamat ? `<div>📍 ${esc(r.alamat)}</div>` : ""}
-          ${r.hp ? `<div>📞 <a href="tel:${esc(r.hp)}" class="lnk">${esc(r.hp)}</a></div>` : ""}
-          ${r.estimasi && r.estimasi !== "-" ? `<div>📦 Est: ${esc(r.estimasi)}</div>` : ""}
+          ${r.alamat ? `<div><svg class="ico" viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg> ${esc(r.alamat)}</div>` : ""}
+          ${r.hp ? `<div><svg class="ico" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.86 19.86 0 0 1 3.09 4.18 2 2 0 0 1 5.07 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L9.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg> <a href="tel:${esc(r.hp)}" class="lnk">${esc(r.hp)}</a></div>` : ""}
+          ${r.estimasi && r.estimasi !== "-" ? `<div><svg class="ico" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> Est: ${esc(r.estimasi)}</div>` : ""}
         </div>
         <div class="map-card-acts">
-          <a href="${esc(mapUrl(r))}" target="_blank" rel="noopener" class="btn-s">🧭 Rute Maps</a>
+          <a href="${esc(mapUrl(r))}" target="_blank" rel="noopener" class="btn-s"><svg class="ico" viewBox="0 0 24 24"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg> Rute Maps</a>
           ${r.status === "SPK" ? `<button class="sm" data-act="detail" data-id="${esc(r.id)}">Detail</button>` : ""}
         </div>
       </div>
@@ -1556,7 +1556,7 @@ if ($("spkSort")) $("spkSort").onchange = renderSpk;
       if (icon) icon.innerHTML = "<circle cx='12' cy='12' r='5'/><path d='M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42'/>";
       const lbl = $("darkLabel"); if (lbl) lbl.textContent = "Light";
     } else {
-      root.removeAttribute("data-theme");
+      root.setAttribute("data-theme", "light");
       const icon = $("darkIcon");
       if (icon) icon.innerHTML = "<path d='M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z'/>";
       const lbl = $("darkLabel"); if (lbl) lbl.textContent = "Dark";

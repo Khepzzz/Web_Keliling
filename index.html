@@ -55,15 +55,39 @@
         <span class="brand-sub">Sistem Lapangan</span>
       </div>
     </div>
-    <button class="nav on" data-v="dash"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>Dashboard</button>
-    <button class="nav" data-v="input"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Input</button>
-    <button class="nav" data-v="riwayat"><svg viewBox="0 0 24 24"><path d="M4 6h.01M4 12h.01M4 18h.01M9 6h12M9 12h12M9 18h12"/></svg>Riwayat</button>
-    <button class="nav" data-v="spk"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 14l2 2 4-4"/></svg>Supplier</button>
-    <button class="nav" data-v="peta"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>Peta</button>
-    <button class="nav" id="syncBtn" title="Sinkronkan data dengan server"><svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg><span id="syncText">Segarkan</span></button>
+    <button class="nav on" data-v="dash">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      Dashboard
+    </button>
+    <button class="nav" data-v="input">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Input
+    </button>
+    <button class="nav" data-v="riwayat">
+      <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      Riwayat
+    </button>
+    <button class="nav" data-v="spk">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="9 15 11 17 15 13"/></svg>
+      Supplier
+    </button>
+    <button class="nav" data-v="peta">
+      <svg viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+      Peta
+    </button>
+    <button class="nav" id="syncBtn" title="Sinkronkan data">
+      <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      <span id="syncText">Segarkan</span>
+    </button>
     <div id="syncBadge" class="sync-badge">Data lokal aktif</div>
-    <button class="nav out" id="logoutBtn"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Keluar</button>
-    <button class="nav dark-toggle" id="darkBtn" title="Toggle dark/light mode"><svg viewBox="0 0 24 24" id="darkIcon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><span id="darkLabel">Dark</span></button>
+    <button class="nav out" id="logoutBtn">
+      <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Keluar
+    </button>
+    <button class="nav dark-toggle" id="darkBtn" title="Toggle dark/light mode">
+      <svg viewBox="0 0 24 24" id="darkIcon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <span id="darkLabel">Dark</span>
+    </button>
   </nav>
   <main>
     <section id="v-dash" class="view">
@@ -75,7 +99,10 @@
       </div>
       <div id="routeBar" class="route-box hidden">
         <div>
-          <b>📍 Rencana Kunjungan Hari Ini</b>
+        <b>
+          <svg class="ico" viewBox="0 0 24 24" style="vertical-align:-3px"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+          Rencana Kunjungan Hari Ini
+        </b>
           <div class="muted" id="routeText">0 klien &amp; kroscek dijadwalkan</div>
         </div>
         <button type="button" class="btn-s sm" id="openRouteBtn">Buka Rute di Google Maps</button>

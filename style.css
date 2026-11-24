@@ -325,26 +325,6 @@ label {
 .side-brand h1 { font-size: 1.05rem; font-weight: 800; margin: 0; color: var(--ink); letter-spacing: -0.02em; }
 .brand-sub { font-size: 0.7rem; color: var(--muted); display: block; }
 
-.nav {
-  background: transparent;
-  box-shadow: none;
-  color: var(--muted);
-  text-align: left;
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  padding: 10px 14px;
-  border-radius: var(--radius-sm);
-  font-weight: 600;
-  font-size: 0.92rem;
-}
-.nav:hover { background: var(--surface-subtle); color: var(--ink); transform: none; box-shadow: none; }
-.nav.on {
-  background: var(--brand);
-  color: #fff;
-  box-shadow: 0 3px 8px rgba(13, 148, 136, 0.35);
-}
-.nav svg { width: 19px; height: 19px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .side .out { margin-top: auto; color: var(--bad); }
 .side .out:hover { background: var(--bad-surface); color: var(--bad); }
 
@@ -897,7 +877,7 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px)
 .dark-toggle:hover { background: var(--surface-subtle); color: var(--ink); transform: none; box-shadow: none; }
 
 /* ===== UNIFIED SVG ICON STYLE ===== */
-/* All nav and card SVG icons — consistent 2px stroke, round caps */
+/* All nav and card SVGs — consistent stroke, no fill */
 .nav svg,
 button svg,
 .lbb svg,
@@ -905,10 +885,58 @@ button svg,
 .brand-icon svg,
 .pw-icon svg,
 .eye svg,
-.map-card-acts svg {
+.map-card-acts svg,
+.tile-btn svg,
+.dark-toggle svg {
+  fill: none;
+  stroke: currentColor;
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+/* Inline icon (.ico) — kecil, inline, sejajar dengan teks */
+svg.ico {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: -2px;
+  display: inline;
+  flex-shrink: 0;
+  margin-right: 3px;
+}
+
+/* Sidebar nav — strict alignment agar semua items lurus */
+.nav {
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  text-align: left;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.9rem;
+  width: 100%;
+  justify-content: flex-start;
+}
+.nav:hover { background: var(--surface-subtle); color: var(--ink); transform: none; box-shadow: none; }
+.nav.on {
+  background: var(--brand);
+  color: #fff;
+  box-shadow: 0 3px 8px rgba(13, 148, 136, 0.35);
+}
+/* Nav SVG: semua sama besar, tidak shrink, tidak stretch */
+.nav > svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
 }
 
 /* ===== FILTERS ROW (Riwayat & SPK) ===== */
