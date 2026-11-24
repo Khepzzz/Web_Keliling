@@ -1,53 +1,91 @@
-const CACHE_NAME = "keliling-pwa-v1";
-const ASSETS = [
+const CACHE_NAME = "keliling-pwa-v2";
+const CORE = [
   "./",
   "./index.html",
   "./style.css",
   "./app.js",
   "./manifest.json",
+  "./icon-192.png",
+];
+const CDN = [
   "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css",
   "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js",
   "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js",
   "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
-  "https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"
+  "https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js",
 ];
 
-self.addEventListener("install", event => {
+// Tiap file di-cache sendiri-sendiri: satu file gagal tidak membatalkan yang lain
+self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS).catch(err => console.warn("Cache fail:", err)))
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      await Promise.allSettled([
+        ...CORE.map((u) => cache.add(new Request(u, { cache: "reload" }))),
+        ...CDN.map((u) => cache.add(u)),
+      ]);
+      await self.skipWaiting();
+    })(),
   );
-  self.skipWaiting();
 });
 
-self.addEventListener("activate", event => {
+self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(
+        keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)),
+      );
+      await self.clients.claim();
+    })(),
   );
-  self.clients.claim();
 });
 
-self.addEventListener("fetch", event => {
-  // Hanya tangani GET requests
-  if (event.request.method !== "GET") return;
+self.addEventListener("fetch", (event) => {
+  const req = event.request;
+  if (req.method !== "GET") return;
+  const url = new URL(req.url);
+  const sameOrigin = url.origin === self.location.origin;
+  const isCdn = url.origin === "https://cdnjs.cloudflare.com";
+  if (!sameOrigin && !isCdn) return; // Apps Script, Drive, tile peta: langsung ke jaringan
 
-  const url = new URL(event.request.url);
-
-  // Jangan tangani Google Apps Script atau Google Drive thumbnail lewat ServiceWorker cache
-  if (url.origin.includes("script.google.com") || url.origin.includes("google.com")) {
+  // Library CDN (versi dikunci di URL): cache dulu
+  if (isCdn) {
+    event.respondWith(
+      caches.match(req).then(
+        (hit) =>
+          hit ||
+          fetch(req).then((res) => {
+            if (res && (res.ok || res.type === "opaque")) {
+              const copy = res.clone();
+              caches.open(CACHE_NAME).then((c) => c.put(req, copy));
+            }
+            return res;
+          }),
+      ),
+    );
     return;
   }
 
+  // File aplikasi: jaringan dulu (selalu cek versi terbaru), cache sebagai cadangan offline
   event.respondWith(
-    fetch(event.request)
-      .then(networkResponse => {
-        if (networkResponse && networkResponse.status === 200 && networkResponse.type === "basic") {
-          const responseClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
+    (async () => {
+      try {
+        const res = await fetch(req, { cache: "no-cache" });
+        if (res && res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then((c) => c.put(req, copy));
         }
-        return networkResponse;
-      })
-      .catch(() => caches.match(event.request))
+        return res;
+      } catch (e) {
+        const hit = await caches.match(req, { ignoreSearch: true });
+        if (hit) return hit;
+        if (req.mode === "navigate") {
+          const idx = await caches.match("./index.html");
+          if (idx) return idx;
+        }
+        return Response.error();
+      }
+    })(),
   );
 });
