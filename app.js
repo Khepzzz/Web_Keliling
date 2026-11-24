@@ -1308,9 +1308,10 @@ function renderMap() {
   if (cur !== "peta") return;
   if (!map) {
     map = L.map("map").setView([-6.6, 110.7], 8);
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
       maxZoom: 19,
-      attribution: "© OpenStreetMap",
+      subdomains: "abcd",
+      attribution: "© OpenStreetMap © CARTO",
     }).addTo(map);
     layer = L.layerGroup().addTo(map);
   }
@@ -1319,19 +1320,38 @@ function renderMap() {
   const f = $("mapSt").value,
     all = D.filter((r) => !f || r.status === f),
     pts = all.filter((r) => r.lat != null && r.lng != null);
-  pts.forEach((r) =>
+  pts.forEach((r) => {
+    const fotoId = r.foto && r.foto.length ? r.foto[0] : null;
+    const thumbUrl = fotoId ? thumb(fotoId, 400) : "";
+    const popupHtml = `
+      <div class="map-card-thumb">
+        ${fotoId ? `<img src="${thumbUrl}" alt="Foto ${esc(r.nama)}" onerror="this.onerror=null;this.src='${PIXEL}';this.parentElement.style.display='none';">` : `<div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:0.8rem">📷 Belum ada foto rumah</div>`}
+        <span class="badge map-card-badge" style="--c:${COL[r.status] || '#0d9488'}">${esc(r.status)}</span>
+      </div>
+      <div class="map-card-body">
+        <b>${esc(r.nama)}</b>
+        <div class="map-card-meta">
+          ${r.alamat ? `<div>📍 ${esc(r.alamat)}</div>` : ""}
+          ${r.hp ? `<div>📞 <a href="tel:${esc(r.hp)}" class="lnk">${esc(r.hp)}</a></div>` : ""}
+          ${r.estimasi && r.estimasi !== "-" ? `<div>📦 Est: ${esc(r.estimasi)}</div>` : ""}
+        </div>
+        <div class="map-card-acts">
+          <a href="${esc(mapUrl(r))}" target="_blank" rel="noopener" class="btn-s">🧭 Rute Maps</a>
+          ${r.status === "SPK" ? `<button class="sm" data-act="detail" data-id="${esc(r.id)}">Detail</button>` : ""}
+        </div>
+      </div>
+    `;
+
     L.circleMarker([r.lat, r.lng], {
-      radius: 10,
-      color: "#fff",
-      weight: 2,
-      fillColor: COL[r.status],
-      fillOpacity: 1,
+      radius: 9,
+      color: "#ffffff",
+      weight: 2.5,
+      fillColor: COL[r.status] || "#0d9488",
+      fillOpacity: 0.95,
     })
-      .bindPopup(
-        `<b>${esc(r.nama)}</b><br>${esc(r.status)}${r.hp ? "<br>" + esc(r.hp) : ""}${r.estimasi && r.estimasi !== "-" ? "<br>Estimasi: " + esc(r.estimasi) : ""}<br><a href="${esc(mapUrl(r))}" target="_blank" rel="noopener">Buka di Maps</a>`,
-      )
-      .addTo(layer),
-  );
+      .bindPopup(popupHtml, { maxWidth: 280, minWidth: 240 })
+      .addTo(layer);
+  });
   if (pts.length)
     map.fitBounds(
       pts.map((r) => [r.lat, r.lng]),
