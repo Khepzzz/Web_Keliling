@@ -1,4 +1,4 @@
-﻿﻿﻿﻿// Ganti dengan URL Web App Apps Script (berakhiran /exec)
+﻿﻿﻿﻿﻿// Ganti dengan URL Web App Apps Script (berakhiran /exec)
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx7BaH87ogbbpuKYctBx8k1lRjJd1yFM0SttL2hPoiqEj7y7mX90tNCidWPRY6lZl4v/exec";
 
 const STATUS = ["Menolak","Ragu-ragu","Tertarik","Siap Ambil","SPK"];
@@ -1362,7 +1362,8 @@ const TILES = {
   satelit: {
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     attr: "Tiles &copy; Esri &mdash; Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
-    maxZoom: 19
+    maxZoom: 19,
+    maxNativeZoom: 18
   }
 };
 
@@ -1372,7 +1373,7 @@ function switchMapTile(mode) {
   if (tileNormalLayer) map.removeLayer(tileNormalLayer);
   if (tileSatelitLayer) map.removeLayer(tileSatelitLayer);
   const t = TILES[mode];
-  const newTile = L.tileLayer(t.url, { maxZoom: t.maxZoom, attribution: t.attr });
+  const newTile = L.tileLayer(t.url, { maxZoom: t.maxZoom, maxNativeZoom: t.maxNativeZoom || t.maxZoom, attribution: t.attr });
   newTile.addTo(map);
   if (mode === "normal") tileNormalLayer = newTile;
   else tileSatelitLayer = newTile;
@@ -1385,7 +1386,7 @@ function renderMap() {
   if (cur !== "peta") return;
   if (!map) {
     map = L.map("map").setView([-6.6, 110.7], 8);
-    tileNormalLayer = L.tileLayer(TILES.normal.url, { maxZoom: 19, attribution: TILES.normal.attr }).addTo(map);
+    tileNormalLayer = L.tileLayer(TILES.normal.url, { maxZoom: 19, maxNativeZoom: 19, attribution: TILES.normal.attr }).addTo(map);
     layer = L.layerGroup().addTo(map);
     // Wire tile toggle buttons
     const tn = $("tileNormal"), ts = $("tileSatelit");

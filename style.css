@@ -92,13 +92,12 @@
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; overflow-x: hidden; }
+/* Dot-grid dihapus untuk performa lebih ringan di mobile */
 body {
   margin: 0;
   min-height: 100vh;
   color: var(--ink);
   background-color: var(--bg);
-  background-image: radial-gradient(var(--border) 1px, transparent 1px);
-  background-size: 24px 24px;
   font: 14.5px/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Inter", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -661,47 +660,77 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px)
 .chip.on { background: var(--brand); color: #fff; border-color: var(--brand); }
 .chip.ro { cursor: default; padding: 5px 12px; font-size: 0.82rem; }
 
-/* ===== RESPONSIVE & MOBILE (FLOATING DOCK DENGAN SATU JEMPOL) ===== */
+/* ===== RESPONSIVE & MOBILE ===== */
 @media (max-width: 760px) {
   .app { display: block; }
+
+  /* ---- Floating bottom dock: horizontal scroll, fixed height ---- */
   .side {
     position: fixed;
-    left: 12px;
-    right: 12px;
-    bottom: calc(10px + env(safe-area-inset-bottom));
+    left: 0;
+    right: 0;
+    bottom: 0;
     top: auto;
-    width: auto;
+    width: 100%;
     height: auto;
     margin: 0;
     flex-direction: row;
-    padding: 6px 8px;
-    border-radius: 28px;
+    padding: 6px 10px calc(6px + env(safe-area-inset-bottom));
+    border-radius: 20px 20px 0 0;
     z-index: 100;
-    gap: 4px;
+    gap: 2px;
     background: var(--surface);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.18);
     border: 1px solid var(--border);
+    border-bottom: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
   }
+  .side::-webkit-scrollbar { display: none; }
+
+  /* Hide desktop-only elements */
   .side-brand, .side .out, .sync-badge { display: none; }
+
+  /* Nav items: fixed width, don't shrink */
   .nav {
-    flex: 1;
+    flex: 0 0 auto;
+    min-width: 60px;
     flex-direction: column;
     gap: 3px;
-    padding: 7px 2px;
-    font-size: 0.68rem;
+    padding: 7px 8px;
+    font-size: 0.65rem;
     text-align: center;
     justify-content: center;
-    border-radius: 18px;
+    border-radius: 14px;
+    white-space: nowrap;
   }
-  .nav svg { width: 21px; height: 21px; }
+  .nav svg { width: 20px; height: 20px; }
+
+  /* Dark toggle — tampil di mobile dock juga */
+  .dark-toggle {
+    display: flex;
+    margin-top: 0;
+    min-width: 56px;
+  }
+
   main {
-    padding: calc(16px + env(safe-area-inset-top)) 14px calc(100px + env(safe-area-inset-bottom));
+    padding: calc(16px + env(safe-area-inset-top)) 14px calc(90px + env(safe-area-inset-bottom));
   }
+
+  /* Dashboard grid → single col */
+  .dash-grid { grid-template-columns: 1fr; }
+  .dash-side { gap: 12px; }
   .two { grid-template-columns: 1fr; }
+
+  /* Route bar → stack */
   .route-box { flex-direction: column; align-items: flex-start; }
   .route-box button { width: 100%; }
+
+  /* Dialog → bottom sheet */
   dialog {
     margin: auto auto 0;
     width: 100%;
@@ -709,7 +738,26 @@ dialog::backdrop { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px)
     border-radius: 24px 24px 0 0;
     padding-bottom: calc(22px + env(safe-area-inset-bottom));
   }
-  .toast { bottom: calc(88px + env(safe-area-inset-bottom)); }
+  .toast { bottom: calc(80px + env(safe-area-inset-bottom)); }
+
+  /* Map tile toggle → tetap tampil di mobile tapi lebih kecil */
+  .map-tile-toggle { display: flex; }
+  #v-peta .rh { flex-wrap: wrap; gap: 10px; }
+
+  /* Filter Riwayat → 2-kolom di mobile */
+  .filters {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .filters .full { grid-column: 1 / -1; }
+
+  /* SPK search card → compact */
+  #v-spk > .card { padding: 12px 14px; }
+
+  /* KPI stat cards: 2 kolom di mobile */
+  .grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .stat { padding: 12px 14px; }
+  .stat b { font-size: 1.5rem; }
 }
 
 /* ===== SKELETON SCREEN SHIMMER EFFECT ===== */
@@ -881,16 +929,6 @@ button svg,
   .dash-grid {
     grid-template-columns: 1fr 280px;
   }
-}
-@media (max-width: 760px) {
-  .dash-grid {
-    grid-template-columns: 1fr;
-  }
-  .dash-side { gap: 12px; }
-  .map-tile-toggle { display: none; } /* Hide on mobile, tap-based map already works */
-  .tile-btn { padding: 5px 10px; font-size: 0.75rem; }
-  #v-peta .rh { flex-wrap: wrap; gap: 10px; }
-  .dark-toggle { display: none; } /* Hidden from mobile dock — space constraint */
 }
 
 /* ===== LEAFLET MAP TILE ATTRIBUTION FIX ===== */
