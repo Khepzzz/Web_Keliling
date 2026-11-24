@@ -209,8 +209,35 @@ if($("syncBtn")) $("syncBtn").onclick = () => {
 };
 
 let loaded = false, loading = false, loadErr = "";
-const statusBox = () => loading ? `<div class="card muted" style="text-align:center">Memuat data…</div>`
-  : loadErr ? `<div class="card" style="text-align:center"><p class="err" style="margin:0 0 10px">Gagal memuat data: ${esc(loadErr)}</p><button data-act="reload">Coba lagi</button></div>` : !loaded ? `<div class="card muted" style="text-align:center">Memuat data…</div>` : "";
+
+const skeletonCards = (count = 3) => Array.from({length: count}).map(() => `
+  <div class="sk-card">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="sk sk-title" style="width:45%"></div>
+      <div class="sk" style="width:75px;height:20px;border-radius:99px"></div>
+    </div>
+    <div class="sk sk-line" style="width:65%"></div>
+    <div class="sk sk-line" style="width:85%"></div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <div class="sk" style="width:90px;height:28px;border-radius:8px"></div>
+      <div class="sk" style="width:110px;height:28px;border-radius:8px"></div>
+    </div>
+  </div>
+`).join("");
+
+const skeletonStats = () => `
+  <div class="sk-grid">
+    ${Array.from({length: 6}).map(() => `
+      <div class="sk-stat">
+        <div class="sk sk-title" style="width:60%"></div>
+        <div class="sk sk-num"></div>
+      </div>
+    `).join("")}
+  </div>
+`;
+
+const statusBox = () => (loading || !loaded) ? skeletonCards(3)
+  : loadErr ? `<div class="card" style="text-align:center"><p class="err" style="margin:0 0 10px">Gagal memuat data: ${esc(loadErr)}</p><button data-act="reload">Coba lagi</button></div>` : "";
 
 async function muat(silent = false){
   if(loading) return;
@@ -1308,10 +1335,9 @@ function renderMap() {
   if (cur !== "peta") return;
   if (!map) {
     map = L.map("map").setView([-6.6, 110.7], 8);
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
-      subdomains: "abcd",
-      attribution: "© OpenStreetMap © CARTO",
+      attribution: "© OpenStreetMap",
     }).addTo(map);
     layer = L.layerGroup().addTo(map);
   }
@@ -1414,6 +1440,15 @@ const aman = (fn) => {
   }
 };
 function renderAll() {
+  if (!loaded && loading) {
+    $("stats").innerHTML = skeletonStats();
+    $("list").innerHTML = skeletonCards(4);
+    $("spkList").innerHTML = skeletonCards(3);
+    document
+      .querySelectorAll("#v-dash .two")
+      .forEach((x) => x.classList.add("hidden"));
+    return;
+  }
   aman(renderDash);
   aman(renderRiwayat);
   aman(renderSpk);
