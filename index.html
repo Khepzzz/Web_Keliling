@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Catatan Keliling Lapangan</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a9aab">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="stylesheet" href="style.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -31,12 +36,21 @@
     <button class="nav" data-v="riwayat"><svg viewBox="0 0 24 24"><path d="M4 6h.01M4 12h.01M4 18h.01M9 6h12M9 12h12M9 18h12"/></svg>Riwayat</button>
     <button class="nav" data-v="spk"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 14l2 2 4-4"/></svg>Supplier</button>
     <button class="nav" data-v="peta"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>Peta</button>
+    <button class="nav" id="syncBtn" title="Sinkronkan data dengan server"><svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg><span id="syncText">Segarkan</span></button>
+    <div id="syncBadge" class="sync-badge">Data lokal aktif</div>
     <button class="nav out" id="logoutBtn"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Keluar</button>
   </nav>
   <main>
     <section id="v-dash" class="view">
       <div class="rh"><h2 style="margin:0">Dashboard</h2>
         <select id="period" style="width:auto"><option value="7">7 hari</option><option value="30" selected>30 hari</option><option value="90">90 hari</option><option value="0">Semua</option></select></div>
+      <div id="routeBar" class="route-box hidden">
+        <div>
+          <b>📍 Rencana Kunjungan Hari Ini</b>
+          <div class="muted" id="routeText">0 klien &amp; kroscek dijadwalkan</div>
+        </div>
+        <button type="button" class="btn-s sm" id="openRouteBtn">Buka Rute di Google Maps</button>
+      </div>
       <div class="grid" id="stats" style="margin-top:12px"></div>
       <div class="two">
         <div class="card"><h2>Klien per status</h2><div id="barStatus"></div></div>
@@ -63,9 +77,11 @@
           <div class="full"><label for="q">Cari</label><input id="q" type="search" placeholder="Nama, alamat, atau catatan"></div>
           <div><label for="stF">Status</label><select id="stF"></select></div>
           <div><label for="pp">Tampil per halaman</label><select id="pp"><option>10</option><option>25</option><option>50</option></select></div>
+          <div><label for="tglMulai">Dari Tanggal</label><input id="tglMulai" type="date"></div>
+          <div><label for="tglSelesai">Sampai Tanggal</label><input id="tglSelesai" type="date"></div>
         </div>
         <p class="muted" id="count"></p>
-        <div class="btn-row"><button class="btn-s" id="xlsBtn">Unduh Excel</button><button class="btn-s" id="pdfBtn">Unduh PDF</button></div>
+        <div class="btn-row"><button class="btn-s" id="xlsBtn">Unduh Excel</button><button class="btn-s" id="pdfBtn">Unduh PDF</button><button class="btn-s" id="resetFilterBtn">Reset Filter</button></div>
       </div>
       <div id="list"></div>
       <div class="pager" id="pager"></div>
@@ -124,6 +140,13 @@
   <div class="btn-row"><button class="btn-s" id="mCancel">Batal</button><button id="mSave">Simpan perubahan</button></div>
 </dialog>
 
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW reg fail:', err));
+  });
+}
+</script>
 <script src="app.js"></script>
 </body>
 </html>

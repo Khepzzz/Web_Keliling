@@ -81,6 +81,91 @@ let D = [], K = [], S = [], A = [], cur = "dash", detailId = null, page = 1;
 
 function toast(msg){ const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2800); }
 
+// ---------- Penyimpanan Lokal (Cache & Offline Queue) ----------
+const CACHE_KEY = "keliling_data_cache_v2";
+const QUEUE_KEY = "keliling_offline_queue_v2";
+
+function loadFromLocalCache(){
+  try{
+    const raw = localStorage.getItem(CACHE_KEY);
+    if(!raw) return false;
+    const c = JSON.parse(raw);
+    if(c && Array.isArray(c.D)){
+      D = c.D || []; K = c.K || []; S = c.S || []; A = c.A || [];
+      loaded = true;
+      updateSyncStatus("synced");
+      return true;
+    }
+  }catch(e){ console.warn("Cache lokal gagal dimuat:", e); }
+  return false;
+}
+
+function saveToLocalCache(){
+  try{ localStorage.setItem(CACHE_KEY, JSON.stringify({D, K, S, A, ts: Date.now()})); }
+  catch(e){ console.warn("Gagal simpan cache lokal:", e); }
+}
+
+function updateSyncStatus(st){
+  const el = $("syncBadge");
+  if(!el) return;
+  const q = getOfflineQueue();
+  if(q.length > 0){
+    el.className = "sync-badge pending";
+    el.textContent = `Menunggu sinyal (${q.length} draft)`;
+    return;
+  }
+  if(st === "syncing"){
+    el.className = "sync-badge syncing";
+    el.textContent = "Menyinkronkan data…";
+  }else if(st === "offline"){
+    el.className = "sync-badge pending";
+    el.textContent = "Mode Offline (Data lokal)";
+  }else{
+    el.className = "sync-badge";
+    el.textContent = "Data lokal aktif & siap";
+  }
+}
+
+function getOfflineQueue(){
+  try{ return JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]"); }catch(e){ return []; }
+}
+function setOfflineQueue(q){
+  try{ localStorage.setItem(QUEUE_KEY, JSON.stringify(q)); }catch(e){}
+  updateSyncStatus();
+}
+function addToOfflineQueue(item){
+  const q = getOfflineQueue(); q.push(item); setOfflineQueue(q);
+}
+
+let draining = false;
+async function drainOfflineQueue(){
+  if(draining || !navigator.onLine) return;
+  const q = getOfflineQueue();
+  if(!q.length) return;
+  draining = true; updateSyncStatus("syncing");
+  const remaining = []; let count = 0;
+  for(const item of q){
+    try{
+      const res = await api(item.payload);
+      count++;
+      if(item.tempId && res.rec){
+        const idx = D.findIndex(x => x.id === item.tempId);
+        if(idx >= 0) D[idx] = res.rec;
+      }
+    }catch(err){
+      remaining.push(item);
+    }
+  }
+  setOfflineQueue(remaining);
+  draining = false;
+  if(count > 0){
+    saveToLocalCache(); renderAll();
+    toast(`${count} data offline berhasil disinkronkan ke server!`);
+  }
+  updateSyncStatus(remaining.length > 0 ? "pending" : "synced");
+}
+window.addEventListener("online", drainOfflineQueue);
+
 async function api(payload){
   if(!SCRIPT_URL.startsWith("https://script.google.com/")) throw new Error("SCRIPT_URL belum diisi.");
   const res = await fetch(SCRIPT_URL,{method:"POST",body:JSON.stringify({...payload,password})});
@@ -96,7 +181,17 @@ async function busy(btn, fn){
 }
 
 // ---------- Login ----------
-function showApp(){ $("loginSection").classList.add("hidden"); $("mainSection").classList.remove("hidden"); muat(); }
+function showApp(){
+  $("loginSection").classList.add("hidden");
+  $("mainSection").classList.remove("hidden");
+  const hasCache = loadFromLocalCache();
+  if(hasCache){
+    renderAll();
+    muat(true); // sinkronisasi tenang di latar belakang tanpa layar loading
+  }else{
+    muat(false);
+  }
+}
 $("loginBtn").onclick = () => busy($("loginBtn"), async () => {
   $("loginErr").textContent = ""; password = $("passInput").value;
   try{ await api({action:"login"}); sessionStorage.setItem("pw",password); showApp(); }
@@ -108,20 +203,41 @@ $("eyeBtn").onclick = () => { const p = $("passInput"), show = p.type === "passw
   $("eyeBtn").setAttribute("aria-label", show ? "Sembunyikan password" : "Tampilkan password"); };
 $("logoutBtn").onclick = () => { sessionStorage.removeItem("pw"); sessionStorage.removeItem("view"); sessionStorage.removeItem("did"); location.reload(); };
 
+if($("syncBtn")) $("syncBtn").onclick = () => {
+  toast("Menyinkronkan data...");
+  muat(false);
+};
+
 let loaded = false, loading = false, loadErr = "";
 const statusBox = () => loading ? `<div class="card muted" style="text-align:center">Memuat data…</div>`
   : loadErr ? `<div class="card" style="text-align:center"><p class="err" style="margin:0 0 10px">Gagal memuat data: ${esc(loadErr)}</p><button data-act="reload">Coba lagi</button></div>` : !loaded ? `<div class="card muted" style="text-align:center">Memuat data…</div>` : "";
-async function muat(){
+
+async function muat(silent = false){
   if(loading) return;
-  loading = true; loadErr = ""; renderAll();
+  loading = true;
+  if(!silent){ loadErr = ""; renderAll(); }
+  updateSyncStatus("syncing");
   let err, r;
   for(let i=0;i<3;i++){
     try{ r = await api({action:"list"}); break; }
-    catch(e){ err = e; if(/password/i.test(e.message) || i===2) break; await new Promise(ok => setTimeout(ok, 1500*(i+1))); }
+    catch(e){ err = e; if(/password/i.test(e.message) || i===2) break; await new Promise(ok => setTimeout(ok, 1200*(i+1))); }
   }
   loading = false;
-  if(r){ D = r.data; K = r.kroscek; S = r.spk || []; A = r.ambil || []; loaded = true; loadErr = ""; }
-  else loadErr = err ? err.message : "Terjadi kesalahan.";
+  if(r){
+    D = r.data; K = r.kroscek; S = r.spk || []; A = r.ambil || [];
+    loaded = true; loadErr = "";
+    saveToLocalCache();
+    updateSyncStatus("synced");
+    drainOfflineQueue();
+  }else{
+    if(loaded && D.length > 0){
+      updateSyncStatus("offline");
+      if(!silent) toast("Mode offline: Menggunakan salinan data lokal");
+    }else{
+      loadErr = err ? err.message : "Terjadi kesalahan.";
+      updateSyncStatus("offline");
+    }
+  }
   renderAll();
 }
 
@@ -160,7 +276,8 @@ async function buatStempel(c, job){
   let lat = null, lng = null, src = "";
   if(g){ lat = g.lat; lng = g.lng; src = "GPS"; }
   else if(punyaSimpan){ lat = Number(c.lat); lng = Number(c.lng); src = "Lokasi tersimpan"; }
-  const st = {nama:c.nama, alamat:"", koor:""};
+  const tglStr = new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+  const st = {nama:c.nama, alamat:"", koor:"", tgl: "Tanggal: " + tglStr};
   if(lat != null){
     st.koor = `${lat.toFixed(6)}, ${lng.toFixed(6)} (${src})`;
     st.alamat = await cariAlamat(lat, lng);
@@ -174,6 +291,7 @@ function stampFoto(c, s){
       if(g.measureText(x).width > W-2*pad && cur){ lines.push(cur); cur = w; } else cur = x; });
     if(cur) lines.push(cur); return lines.slice(0,max); };
   const fb = `bold ${fs}px sans-serif`, fn = `${Math.round(fs*.85)}px sans-serif`, rows = [];
+  if(s.tgl) rows.push({t: s.tgl, f: fn});
   wrap(s.nama, fb, 2).forEach(t => rows.push({t, f:fb}));
   if(s.alamat) wrap(s.alamat, fn, 3).forEach(t => rows.push({t, f:fn}));
   if(s.koor) wrap(s.koor, fn, 2).forEach(t => rows.push({t, f:fn}));
@@ -396,11 +514,45 @@ $("saveBtn").onclick = () =>
   busy($("saveBtn"), async () => {
     try {
       const rec = await FI.collect();
-      const res = await api({ action: "save", ...rec });
-      D.unshift(res.rec);
-      renderAll();
-      toast("Data tersimpan");
-      resetInput();
+      try {
+        const res = await api({ action: "save", ...rec });
+        D.unshift(res.rec);
+        saveToLocalCache();
+        renderAll();
+        toast("Data tersimpan");
+        resetInput();
+      } catch (netErr) {
+        if (!navigator.onLine || /fetch|network|offline|failed/i.test(netErr.message)) {
+          const tempId = "draft_" + Date.now().toString(36);
+          const localRec = {
+            id: tempId,
+            waktu: new Date().toISOString(),
+            nama: rec.nama,
+            alamat: rec.alamat || "",
+            hp: rec.hp || "",
+            status: rec.status,
+            estimasi: rec.estimasi || "-",
+            catatan: rec.catatan || "",
+            maps: rec.maps || "",
+            lat: rec.lat || null,
+            lng: rec.lng || null,
+            foto: rec.foto || [],
+            tglSpk: rec.status === "SPK" ? new Date().toISOString() : "",
+            fu: rec.fu || "",
+            fuDone: "",
+            kHari: "",
+            kNext: ""
+          };
+          D.unshift(localRec);
+          saveToLocalCache();
+          addToOfflineQueue({ payload: { action: "save", ...rec }, tempId });
+          renderAll();
+          toast("Sinyal tidak ada: Tersimpan lokal di HP & otomatis terkirim saat online");
+          resetInput();
+        } else {
+          throw netErr;
+        }
+      }
     } catch (e) {
       FI.err(e.message);
     }
@@ -417,7 +569,9 @@ $("mSave").onclick = () =>
     try {
       const rec = await FE.collect();
       const res = await api({ action: "update", id: editing.id, ...rec });
-      D[D.findIndex((x) => x.id === editing.id)] = res.rec;
+      const idx = D.findIndex((x) => x.id === editing.id);
+      if (idx >= 0) D[idx] = res.rec;
+      saveToLocalCache();
       renderAll();
       $("modal").close();
       toast("Perubahan tersimpan");
@@ -727,6 +881,35 @@ function renderDash() {
     .join("");
 
   const today = todayStr();
+  const fuToday = D.filter(r => r.fu && !r.fuDone && r.fu <= today && FU_ST.includes(r.status));
+  const kToday = jk0.map(x => x.r);
+  const ruteHariIni = [...fuToday, ...kToday.filter(kr => !fuToday.some(fr => fr.id === kr.id))];
+  const ruteWithCoords = ruteHariIni.filter(r => r.lat != null && r.lng != null);
+
+  const routeBar = $("routeBar");
+  if(routeBar){
+    if(ruteHariIni.length > 0){
+      routeBar.classList.remove("hidden");
+      $("routeText").textContent = `${ruteHariIni.length} titik (${fuToday.length} follow-up, ${kToday.length} kroscek) · ${ruteWithCoords.length} lokasi berkoordinat`;
+      $("openRouteBtn").onclick = () => {
+        if(!ruteWithCoords.length) return toast("Belum ada lokasi kunjungan hari ini yang memiliki koordinat.");
+        const urut = myPos ? ruteWithCoords.slice().sort((a,b) => (jarakKm(a)||999) - (jarakKm(b)||999)) : ruteWithCoords;
+        const pts = urut.map(r => `${r.lat},${r.lng}`);
+        let url = "";
+        if(pts.length === 1){
+          url = `https://www.google.com/maps/dir/?api=1&destination=${pts[0]}`;
+        }else{
+          const dest = pts[pts.length - 1];
+          const waypoints = pts.slice(0, pts.length - 1).join("|");
+          url = `https://www.google.com/maps/dir/?api=1&destination=${dest}&waypoints=${waypoints}`;
+        }
+        window.open(url, "_blank");
+      };
+    }else{
+      routeBar.classList.add("hidden");
+    }
+  }
+
   const fu = urutDekat(
     D.filter((r) => r.fu && !r.fuDone && FU_ST.includes(r.status)).sort(
       (a, b) => a.fu.localeCompare(b.fu),
@@ -800,10 +983,14 @@ function renderDash() {
 
 function filtered() {
   const q = $("q").value.toLowerCase().trim(),
-    st = $("stF").value;
+    st = $("stF").value,
+    tm = $("tglMulai") ? $("tglMulai").value : "",
+    ts = $("tglSelesai") ? $("tglSelesai").value : "";
   return D.filter(
     (r) =>
       (!st || r.status === st) &&
+      (!tm || String(r.waktu).slice(0, 10) >= tm) &&
+      (!ts || String(r.waktu).slice(0, 10) <= ts) &&
       (!q ||
         [r.nama, r.alamat, r.hp, r.status, r.catatan]
           .join(" ")
@@ -857,6 +1044,24 @@ function spkInfo(id) {
             : `terlambat ${-d} hari`),
   };
 }
+function kualitasSupplier(sid) {
+  const spks = sOf(sid);
+  if (!spks.length) return null;
+  let totalLolos = 0, totalSvc = 0, totalRej = 0;
+  spks.forEach(sp => {
+    const h = hitung(sp);
+    totalLolos += h.terangkut;
+    totalSvc += h.service;
+    totalRej += h.ditolak;
+  });
+  const total = totalLolos + totalSvc + totalRej;
+  if (total === 0) return null;
+  const pLolos = Math.round((totalLolos / total) * 100);
+  const pSvc = Math.round((totalSvc / total) * 100);
+  const pRej = Math.max(0, 100 - pLolos - pSvc);
+  return { total, totalLolos, totalSvc, totalRej, pLolos, pSvc, pRej };
+}
+
 function renderSpk() {
   const rows = D.filter((r) => r.status === "SPK").sort((a, b) => {
     const f = (x) => {
@@ -879,11 +1084,24 @@ function renderSpk() {
                   ? "#c98400"
                   : "#1b7a4b"
             : "";
+        const q = kualitasSupplier(r.id);
+        const qHtml = q ? `<div class="quality-box">
+    <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px">
+      <span><b>Kualitas Pengambilan:</b> ${q.pLolos}% Lolos (${q.totalLolos}/${q.total} pcs)</span>
+      <span class="muted">${q.pSvc}% Service · ${q.pRej}% Retur</span>
+    </div>
+    <div class="quality-bar">
+      <div class="q-lolos" style="width:${q.pLolos}%" title="${q.totalLolos} pcs lolos (${q.pLolos}%)"></div>
+      <div class="q-svc" style="width:${q.pSvc}%" title="${q.totalSvc} pcs service (${q.pSvc}%)"></div>
+      <div class="q-rej" style="width:${q.pRej}%" title="${q.totalRej} pcs retur (${q.pRej}%)"></div>
+    </div>
+  </div>` : "";
         return `<div class="rec" style="--c:${COL.SPK}">
     <div class="rh"><b>${esc(r.nama)}</b>${i ? `<span class="badge" style="--c:${c}">${i.txt}</span>` : `<span class="muted">Data SPK belum diisi</span>`}</div>
     <div class="rl">${hpCell(r.hp)}${mapBtns(r)}</div>
     ${r.alamat ? `<div class="muted">${esc(r.alamat)}</div>` : ""}
     <div class="muted">${sOf(r.id).length} SPK · ${K.filter((k) => k.sid === r.id).length} laporan kroscek</div>
+    ${qHtml}
     <div class="acts">${!i || i.done ? `<button class="sm" data-act="spknew" data-id="${esc(r.id)}">${i ? "SPK baru" : "Isi data SPK"}</button>` : ""}<button class="sm" data-act="detail" data-id="${esc(r.id)}">Buka halaman supplier</button></div></div>`;
       })
       .join("") ||
@@ -1147,10 +1365,12 @@ function showView(v) {
       ),
     );
   scrollTo(0, 0);
-  if (v === "detail") renderDetail();
-  if (v === "spkd") renderSpkDetail();
-  if (!loaded && !loading && password) muat();
-  renderMap();
+  if (v === "dash") aman(renderDash);
+  if (v === "riwayat") aman(renderRiwayat);
+  if (v === "spk") aman(renderSpk);
+  if (v === "detail") aman(renderDetail);
+  if (v === "spkd") aman(renderSpkDetail);
+  if (v === "peta") renderMap();
 }
 document.querySelectorAll(".nav[data-v]").forEach(
   (b) =>
@@ -1198,15 +1418,16 @@ $("legend").innerHTML = STATUS.map(
 ).join("");
 $("mapSt").onchange = renderMap;
 $("period").onchange = renderDash;
-$("q").oninput = () => {
-  page = 1;
-  renderRiwayat();
-};
-$("stF").onchange = () => {
-  page = 1;
-  renderRiwayat();
-};
-$("pp").onchange = () => {
+$("q").oninput = () => { page = 1; renderRiwayat(); };
+$("stF").onchange = () => { page = 1; renderRiwayat(); };
+$("pp").onchange = () => { page = 1; renderRiwayat(); };
+if ($("tglMulai")) $("tglMulai").onchange = () => { page = 1; renderRiwayat(); };
+if ($("tglSelesai")) $("tglSelesai").onchange = () => { page = 1; renderRiwayat(); };
+if ($("resetFilterBtn")) $("resetFilterBtn").onclick = () => {
+  $("q").value = "";
+  $("stF").value = "";
+  if ($("tglMulai")) $("tglMulai").value = "";
+  if ($("tglSelesai")) $("tglSelesai").value = "";
   page = 1;
   renderRiwayat();
 };
@@ -1438,13 +1659,25 @@ document.addEventListener("click", async (e) => {
 const cl = v => String(v ?? "").replace(/[^\u0000-\u00FF]/g,"");
 const lt = iso => new Date(iso).toLocaleString("id-ID");
 function exportRows(){ return filtered().map(r => ({Waktu:lt(r.waktu),Nama:r.nama,Alamat:r.alamat,"No HP":r.hp,Status:r.status,"Est. Barang/Mgg":r.estimasi,"Follow-up":r.fu,"Sudah dikunjungi":r.fuDone||"",Lokasi:mapUrl(r),Catatan:r.catatan})); }
-$("xlsBtn").onclick = () => { const rows = exportRows(); if(!rows.length) return toast("Tidak ada data untuk diunduh");
-  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), "Rekap"); XLSX.writeFile(wb,"Rekap_Keliling.xlsx"); };
-$("pdfBtn").onclick = () => { const rows = exportRows(); if(!rows.length) return toast("Tidak ada data untuk diunduh");
+$("xlsBtn").onclick = () => {
+  const rows = exportRows();
+  if(!rows.length) return toast("Tidak ada data untuk diunduh");
+  const tm = $("tglMulai") ? $("tglMulai").value : "";
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), "Rekap");
+  XLSX.writeFile(wb, `Rekap_Keliling${tm ? "_"+tm : ""}.xlsx`);
+};
+$("pdfBtn").onclick = () => {
+  const rows = exportRows();
+  if(!rows.length) return toast("Tidak ada data untuk diunduh");
+  const tm = $("tglMulai") ? $("tglMulai").value : "", ts = $("tglSelesai") ? $("tglSelesai").value : "";
+  const periStr = (tm || ts) ? ` · Periode: ${tm ? fmtDay(tm) : "Awal"} s/d ${ts ? fmtDay(ts) : "Sekarang"}` : "";
   const doc = new window.jspdf.jsPDF({orientation:"landscape",format:"a4"}), keys = Object.keys(rows[0]).filter(k => k!=="Lokasi");
-  doc.setFontSize(13); doc.text("Rekap Keliling Lapangan",14,14); doc.setFontSize(9); doc.text(`Dicetak ${new Date().toLocaleString("id-ID")} - ${rows.length} data`,14,19);
+  doc.setFontSize(13); doc.text("Rekap Keliling Lapangan",14,14);
+  doc.setFontSize(9); doc.text(`Dicetak ${new Date().toLocaleString("id-ID")}${periStr} · ${rows.length} data`,14,19);
   doc.autoTable({startY:23,margin:{left:14,right:14},head:[keys],body:rows.map(r => keys.map(k => cl(r[k]))),styles:{fontSize:8,cellPadding:2,textColor:0},headStyles:{fillColor:[15,92,102],textColor:255}});
-  doc.save("Rekap_Keliling.pdf"); };
+  doc.save(`Rekap_Keliling${tm ? "_"+tm : ""}.pdf`);
+};
 
 // only = satu SPK saja (unduhan per SPK); kosong = semua SPK supplier
 const spkList = (r, only) => only ? [only] : sOf(r.id);
