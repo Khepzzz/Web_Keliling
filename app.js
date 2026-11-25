@@ -483,7 +483,7 @@ function stampFoto(c, s) {
     return lines.slice(0, max);
   };
   const fb = `bold ${fs}px sans-serif`,
-    fn = `${Math.round(fs * 0.85)}px sans-serif`,
+    fn = `bold ${Math.round(fs * 0.85)}px sans-serif`,
     rows = [];
   if (s.tgl) rows.push({ t: s.tgl, f: fn });
   wrap(s.nama, fb, 2).forEach((t) => rows.push({ t, f: fb }));
