@@ -275,6 +275,8 @@ $("logoutBtn").onclick = () => {
   sessionStorage.removeItem("did");
   try {
     localStorage.removeItem(CACHE_KEY);
+    localStorage.removeItem(AI_KEY);
+    localStorage.removeItem(AI_QKEY);
   } catch (e) {}
   location.reload();
 };
@@ -1299,7 +1301,7 @@ function renderDash() {
           },
           semua.length > MAXP ? 1500 : 0,
         );
-      };;
+      };
     } else {
       routeBar.classList.add("hidden");
     }
@@ -1912,6 +1914,7 @@ function showView(v) {
   if (v === "detail") aman(renderDetail);
   if (v === "spkd") aman(renderSpkDetail);
   if (v === "peta") renderMap();
+  if (v === "ai") aman(renderAi);
 }
 document.querySelectorAll(".nav[data-v]").forEach(
   (b) =>
@@ -2084,6 +2087,7 @@ setInterval(updateSyncBadgeTime, 60000);
       if (window.scrollY > 10) return;
       if (
         cur === "peta" ||
+        cur === "ai" ||
         document.querySelector("dialog[open]") ||
         $("lb").classList.contains("on")
       )
@@ -2876,6 +2880,783 @@ document.addEventListener("click", (e) => {
 });
 
 resetInput();
+
+// ===== TANYA AI =====
+const AI_KEY = "keliling_ai_chat_v1",
+  AI_QKEY = "keliling_ai_kuota_v1",
+  AI_REAL = "keliling_ai_real_v1";
+let aiLog = [],
+  aiBusy = false,
+  aiErr = "";
+try {
+  aiLog = JSON.parse(localStorage.getItem(AI_KEY) || "[]");
+  if (!Array.isArray(aiLog)) aiLog = [];
+} catch (e) {
+  aiLog = [];
+}
+const aiSave = () => {
+  try {
+    localStorage.setItem(AI_KEY, JSON.stringify(aiLog.slice(-40)));
+  } catch (e) {}
+};
+const aiHariPT = () =>
+  new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
+const aiRealOn = () => {
+  try {
+    return localStorage.getItem(AI_REAL) === "1";
+  } catch (e) {
+    return false;
+  }
+};
+const aiRx = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const aiFmt = (s) =>
+  esc(s)
+    .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
+    .replace(/^[ \t]*[-*] /gm, "• ")
+    .replace(/\n{3,}/g, "\n\n");
+
+// Kode klien ("Klien 1", ...) stabil menurut urutan ID. Dipakai untuk menyamarkan nama sebelum dikirim.
+function aiNames() {
+  const rows = D.filter(
+    (r) =>
+      !String(r.id).startsWith("draft_") &&
+      String(r.nama || "").trim().length >= 3,
+  )
+    .slice()
+    .sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  const byName = new Map(),
+    byCode = new Map(),
+    byId = new Map();
+  rows.forEach((r, i) => {
+    const n = r.nama.trim().toLowerCase(),
+      code = "Klien " + (i + 1);
+    byId.set(r.id, code);
+    byCode.set(code, r);
+    if (!byName.has(n)) byName.set(n, { code, r });
+  });
+  const names = [...byName.keys()].sort((a, b) => b.length - a.length);
+  const rx = names.length
+    ? new RegExp(
+        "(^|[^\\p{L}\\p{N}])(" +
+          names.map(aiRx).join("|") +
+          ")(?![\\p{L}\\p{N}])",
+        "giu",
+      )
+    : null;
+  return { rx, byName, byCode, byId };
+}
+// Buang link dan nomor telepon, lalu ganti nama klien dengan kode
+function aiMasking(teks, M, real) {
+  let s = String(teks || "")
+    .replace(/https?:\/\/\S+/g, "[link]")
+    .replace(/\+?\d[\d\s().-]{7,}\d/g, (x) =>
+      x.replace(/\D/g, "").length >= 9 && !/^\d{4}-\d{2}-\d{2}/.test(x)
+        ? "[no hp]"
+        : x,
+    );
+  if (!real && M.rx)
+    s = s.replace(M.rx, (m, pre, nm) => {
+      const e = M.byName.get(nm.toLowerCase());
+      return e ? pre + e.code : m;
+    });
+  return s;
+}
+const aiUnmask = (teks, M, real) =>
+  real
+    ? teks
+    : String(teks).replace(/Klien (\d+)/g, (m, n) => {
+        const r = M.byCode.get("Klien " + n);
+        return r ? r.nama : m;
+      });
+function aiMention(teks, M) {
+  const out = [],
+    seen = new Set();
+  if (!M.rx) return out;
+  String(teks).replace(M.rx, (m, pre, nm) => {
+    const e = M.byName.get(nm.toLowerCase());
+    if (e && !seen.has(e.code)) {
+      seen.add(e.code);
+      out.push(e.r);
+    }
+    return m;
+  });
+  return out;
+}
+
+// Data yang disisipkan ke prompt: angka ringkas + detail klien yang disebut (maks 3)
+function aiKonteks(men, M, real, luas, teks) {
+  const today = todayStr(),
+    m = (t) => aiMasking(t, M, real),
+    cd = (r) => (real ? r.nama : M.byId.get(r.id) || "Klien ?"),
+    pendek = (t, n) =>
+      m(t || "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, n),
+    q = String(teks || "").toLowerCase(),
+    tKros = luas || /kroscek|laporan/.test(q),
+    tSpk = /spk|supplier|target|kualitas|lolos|retur|tempo/.test(q),
+    rows = D.filter((r) => !String(r.id).startsWith("draft_")),
+    sup = rows.filter((r) => r.status === "SPK"),
+    belumFu = rows
+      .filter(
+        (r) => r.fu && !r.fuDone && r.fu <= today && FU_ST.includes(r.status),
+      )
+      .sort((a, b) => a.fu.localeCompare(b.fu)),
+    sudahFu = rows.filter((r) => r.fuDone === today),
+    nantiFu = rows
+      .filter(
+        (r) => r.fu && !r.fuDone && r.fu > today && FU_ST.includes(r.status),
+      )
+      .sort((a, b) => a.fu.localeCompare(b.fu)),
+    jk = sup.map((r) => ({ r, j: jadwalK(r) })).filter((x) => x.j),
+    kHariIni = jk.filter((x) => x.j.hari.length && x.j.hariIni),
+    kBelum = kHariIni.filter((x) => !x.j.sudah),
+    lapHariIni = K.filter((k) => ld(k.waktu) === today),
+    due = sup
+      .map((r) => ({ r, i: spkInfo(r.id) }))
+      .filter((x) => x.i && !x.i.done && x.i.d <= 14)
+      .sort((a, b) => a.i.d - b.i.d),
+    svc = sup
+      .map((r) => ({
+        r,
+        n: sOf(r.id).reduce((a, s) => a + hitung(s).service, 0),
+        t: umurService(r.id),
+      }))
+      .filter((x) => x.n > 0)
+      .sort((a, b) => (a.t || "").localeCompare(b.t || "")),
+    L = [];
+
+  L.push(
+    "RINGKASAN (sudah dihitung aplikasi, pakai apa adanya)",
+    "Hari ini: " + HARI[dow(today)] + ", " + today,
+    "Total klien: " +
+      rows.length +
+      " (" +
+      STATUS.map(
+        (s) => s + " " + rows.filter((r) => r.status === s).length,
+      ).join(", ") +
+      ")",
+    "Jumlah supplier (klien berstatus SPK): " + sup.length,
+    "Follow-up BELUM dikunjungi (jatuh tempo/terlambat): " + belumFu.length,
+  );
+  belumFu
+    .slice(0, 15)
+    .forEach((r) =>
+      L.push(
+        "- " +
+          cd(r) +
+          " (" +
+          r.status +
+          ", jadwal " +
+          r.fu +
+          (r.fu < today
+            ? ", terlambat " + dayDiff(r.fu, today) + " hari"
+            : ", hari ini") +
+          ")",
+      ),
+    );
+  L.push("Follow-up SUDAH dikunjungi hari ini: " + sudahFu.length);
+  sudahFu
+    .slice(0, 15)
+    .forEach((r) => L.push("- " + cd(r) + " (" + r.status + ")"));
+  L.push("Follow-up mendatang: " + nantiFu.length);
+  nantiFu
+    .slice(0, 8)
+    .forEach((r) =>
+      L.push("- " + cd(r) + " (" + r.status + ", jadwal " + r.fu + ")"),
+    );
+  L.push(
+    "Kroscek dijadwalkan hari ini: " +
+      kHariIni.length +
+      " (sudah " +
+      (kHariIni.length - kBelum.length) +
+      ", belum " +
+      kBelum.length +
+      ")",
+  );
+  kBelum.slice(0, 15).forEach((x) => L.push("- belum dikroscek: " + cd(x.r)));
+  L.push(
+    "Supplier yang hari kroscek-nya belum diatur: " +
+      jk.filter((x) => !x.j.hari.length).length,
+  );
+  L.push("Laporan kroscek dibuat hari ini: " + lapHariIni.length);
+  lapHariIni.slice(0, 10).forEach((k) => {
+    const r = D.find((x) => x.id === k.sid);
+    if (r)
+      L.push("- " + cd(r) + ": " + pendek(k.catatan || "(tanpa catatan)", 100));
+  });
+  L.push("SPK jatuh tempo dalam 14 hari atau terlambat: " + due.length);
+  due.slice(0, 10).forEach((x) => L.push("- " + cd(x.r) + ": " + x.i.txt));
+  L.push(
+    "Barang menunggu cek ulang (service): " +
+      svc.reduce((a, x) => a + x.n, 0) +
+      " pcs di " +
+      svc.length +
+      " supplier",
+  );
+  svc
+    .slice(0, 10)
+    .forEach((x) =>
+      L.push(
+        "- " +
+          cd(x.r) +
+          ": " +
+          x.n +
+          " pcs, " +
+          (x.t ? Math.max(0, dayDiff(x.t, today)) : 0) +
+          " hari menunggu",
+      ),
+    );
+
+  // Data tambahan sesuai topik, hanya bila tidak ada nama klien yang disebut
+  if (!men.length) {
+    if (tKros) {
+      L.push("", "KROSCEK TERAKHIR PER SUPPLIER");
+      sup.slice(0, 20).forEach((r) => {
+        const ks = kOf(r.id)
+          .slice()
+          .sort((a, b) => b.waktu.localeCompare(a.waktu));
+        L.push(
+          "- " +
+            cd(r) +
+            ": " +
+            (ks.length
+              ? ld(ks[0].waktu) +
+                " " +
+                pendek(ks[0].catatan || "(tanpa catatan)", 140) +
+                " [" +
+                ks.length +
+                " laporan]"
+              : "belum pernah dikroscek"),
+        );
+      });
+    }
+    if (tSpk) {
+      L.push("", "SPK DAN KUALITAS PER SUPPLIER");
+      sup.slice(0, 20).forEach((r) => {
+        const i = spkInfo(r.id),
+          qk = kualitasSupplier(r.id);
+        L.push(
+          "- " +
+            cd(r) +
+            ": " +
+            (i ? i.txt : "data SPK belum diisi") +
+            (qk
+              ? "; lolos " +
+                qk.pLolos +
+                "%, service " +
+                qk.pSvc +
+                "%, retur " +
+                qk.pRej +
+                "%"
+              : ""),
+        );
+      });
+    }
+  }
+
+  // Detail klien yang disebut di percakapan (maks 3)
+  men.forEach((r) => {
+    L.push("", "DETAIL KLIEN: " + cd(r), "Status: " + r.status);
+    if (r.estimasi && r.estimasi !== "-")
+      L.push("Estimasi kirim/minggu: " + m(r.estimasi));
+    if (r.fu)
+      L.push(
+        "Follow-up: " +
+          r.fu +
+          (r.fuDone
+            ? " (sudah dikunjungi " + r.fuDone + ")"
+            : r.fu < today
+              ? " (terlambat)"
+              : ""),
+      );
+    const w = ld(r.waktu);
+    if (w) L.push("Dicatat " + Math.max(0, dayDiff(w, today)) + " hari lalu");
+    if (r.catatan) L.push("Catatan: " + m(r.catatan).slice(0, 600));
+    if (r.status === "SPK") {
+      const i = spkInfo(r.id);
+      if (i) L.push("SPK terakhir: " + i.txt);
+      const ss = sOf(r.id),
+        off = Math.max(0, ss.length - 3);
+      ss.slice(-3).forEach((s, n) => {
+        const h = hitung(s);
+        L.push(
+          `SPK ke-${off + n + 1}: target ${h.target}, terangkut ${h.terangkut}, di service ${h.service}, ditolak ${h.ditolak}, ${statusSpk(h)}`,
+        );
+      });
+      const qk = kualitasSupplier(r.id);
+      if (qk)
+        L.push(
+          `Kualitas: ${qk.pLolos}% lolos, ${qk.pSvc}% service, ${qk.pRej}% retur dari ${qk.total} pcs`,
+        );
+      const j = jadwalK(r);
+      if (j) L.push("Jadwal kroscek: " + jadwalTxt(j));
+      const ks = kOf(r.id)
+        .slice()
+        .sort((a, b) => b.waktu.localeCompare(a.waktu));
+      L.push("Jumlah laporan kroscek: " + ks.length);
+      ks.slice(0, 3).forEach((k) =>
+        L.push(
+          "Kroscek " +
+            ld(k.waktu) +
+            ": " +
+            m(k.catatan || "(tanpa catatan)").slice(0, 300),
+        ),
+      );
+    }
+  });
+
+  // Snapshot semua klien, satu baris per klien, dibatasi ukurannya
+  L.push("", "DAFTAR KLIEN (ringkas, " + rows.length + " klien)");
+  let used = L.join("\n").length,
+    n = 0;
+  for (const r of rows) {
+    const line =
+      "- " +
+      cd(r) +
+      " | " +
+      r.status +
+      " | est " +
+      (r.estimasi && r.estimasi !== "-" ? m(r.estimasi) : "-") +
+      " | fu " +
+      (r.fu || "-") +
+      (r.fuDone ? " (sudah " + r.fuDone + ")" : "") +
+      " | dicatat " +
+      ld(r.waktu) +
+      (r.catatan ? " | " + pendek(r.catatan, 80) : "");
+    if (used + line.length > 12500) break;
+    L.push(line);
+    used += line.length + 1;
+    n++;
+  }
+  if (n < rows.length)
+    L.push("(daftar dipotong: " + n + " dari " + rows.length + " klien)");
+  return L.join("\n").slice(0, 15000);
+}
+function aiKonteksLama(men, M, real, luas) {
+  const today = todayStr(),
+    m = (t) => aiMasking(t, M, real),
+    cd = (r) => (real ? r.nama : M.byId.get(r.id) || "Klien ?");
+  const L = [
+    "Hari ini: " + today,
+    "Klien per status: " +
+      STATUS.map((s) => s + " " + D.filter((r) => r.status === s).length).join(
+        ", ",
+      ),
+  ];
+  const fu = D.filter(
+    (r) => r.fu && !r.fuDone && r.fu <= today && FU_ST.includes(r.status),
+  ).sort((a, b) => a.fu.localeCompare(b.fu));
+  L.push("Follow-up jatuh tempo/terlambat: " + fu.length);
+  fu.slice(0, 8).forEach((r) =>
+    L.push("- " + cd(r) + " (" + r.status + ", " + r.fu + ")"),
+  );
+  const due = D.filter((r) => r.status === "SPK")
+    .map((r) => ({ r, i: spkInfo(r.id) }))
+    .filter((x) => x.i && !x.i.done && x.i.d <= 14);
+  L.push("SPK jatuh tempo 14 hari ke depan: " + due.length);
+  due.slice(0, 8).forEach((x) => L.push("- " + cd(x.r) + ": " + x.i.txt));
+  if (luas && !men.length) {
+    L.push("Kualitas supplier:");
+    D.filter((r) => r.status === "SPK")
+      .slice(0, 10)
+      .forEach((r) => {
+        const q = kualitasSupplier(r.id);
+        if (q)
+          L.push(
+            `- ${cd(r)}: lolos ${q.pLolos}%, service ${q.pSvc}%, retur ${q.pRej}% (${q.total} pcs)`,
+          );
+      });
+  }
+  men.forEach((r) => {
+    L.push("", "KLIEN: " + cd(r), "Status: " + r.status);
+    if (r.estimasi && r.estimasi !== "-")
+      L.push("Estimasi kirim/minggu: " + m(r.estimasi));
+    if (r.fu)
+      L.push(
+        "Follow-up: " +
+          r.fu +
+          (r.fuDone
+            ? " (sudah dikunjungi " + r.fuDone + ")"
+            : r.fu < today
+              ? " (terlambat)"
+              : ""),
+      );
+    const w = ld(r.waktu);
+    if (w) L.push("Dicatat " + Math.max(0, dayDiff(w, today)) + " hari lalu");
+    if (r.catatan) L.push("Catatan: " + m(r.catatan).slice(0, 600));
+    if (r.status === "SPK") {
+      const i = spkInfo(r.id);
+      if (i) L.push("SPK terakhir: " + i.txt);
+      const ss = sOf(r.id),
+        off = Math.max(0, ss.length - 3);
+      ss.slice(-3).forEach((s, n) => {
+        const h = hitung(s);
+        L.push(
+          `SPK ke-${off + n + 1}: target ${h.target}, terangkut ${h.terangkut}, di service ${h.service}, ditolak ${h.ditolak}, ${statusSpk(h)}`,
+        );
+      });
+      const q = kualitasSupplier(r.id);
+      if (q)
+        L.push(
+          `Kualitas: ${q.pLolos}% lolos, ${q.pSvc}% service, ${q.pRej}% retur dari ${q.total} pcs`,
+        );
+      const j = jadwalK(r);
+      if (j) L.push("Jadwal kroscek: " + jadwalTxt(j));
+      const ks = kOf(r.id)
+        .slice()
+        .sort((a, b) => b.waktu.localeCompare(a.waktu));
+      L.push("Jumlah laporan kroscek: " + ks.length);
+      ks.slice(0, 3).forEach((k) =>
+        L.push(
+          "Kroscek " +
+            ld(k.waktu) +
+            ": " +
+            m(k.catatan || "(tanpa catatan)").slice(0, 300),
+        ),
+      );
+    }
+  });
+  return L.join("\n").slice(0, 5500);
+}
+
+// Pisahkan blok JSON usulan di akhir jawaban (dipakai tombol "Pakai ini")
+function aiParse(t) {
+  const m = String(t).match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```\s*$/i);
+  if (!m) return { t: String(t).trim(), j: null };
+  let j = null;
+  try {
+    j = JSON.parse(m[1]);
+  } catch (e) {}
+  if (!j || typeof j !== "object") return { t: String(t).trim(), j: null };
+  return { t: String(t).slice(0, m.index).trim(), j };
+}
+
+async function aiKirim(teks) {
+  teks = teks.trim();
+  if (!teks || aiBusy) return;
+  aiBusy = true;
+  aiErr = "";
+  const real = aiRealOn(),
+    M = aiNames();
+  aiLog.push({ r: "u", t: teks, ts: Date.now() });
+  aiSave();
+  aiDraw();
+  aiNet();
+  try {
+    const men = [];
+    for (const x of aiLog
+      .filter((x) => x.r === "u")
+      .slice(-4)
+      .reverse()) {
+      aiMention(x.t, M).forEach((r) => {
+        if (!men.some((y) => y.id === r.id)) men.push(r);
+      });
+      if (men.length >= 3) break;
+    }
+    const mentioned = men.slice(0, 3);
+    const hist = aiLog
+      .slice(-8)
+      .map((x) => ({ r: x.r, t: aiMasking(x.t, M, real) }));
+    const berat = /rangkum|ringkas|kroscek|kualitas|laporan/i.test(teks);
+    const res = await api({
+      action: "ai",
+      pesan: hist,
+      konteks: aiKonteks(mentioned, M, real, berat, teks),
+      berat,
+    });
+    const p = aiParse(res.teks);
+    let j = null;
+    if (p.j) {
+      j = {};
+      if (Array.isArray(p.j.massal)) {
+        const seen = new Set();
+        j.massal = p.j.massal
+          .slice(0, 30)
+          .map((e) => {
+            const k = String((e && e.klien) || "").trim();
+            const r =
+              M.byCode.get(k) || (M.byName.get(k.toLowerCase()) || {}).r;
+            const c =
+              e && typeof e.catatan === "string" ? e.catatan.trim() : "";
+            // lewati yang tidak dikenal, kembar, kosong, atau mengandung placeholder (link/no hp asli bisa hilang)
+            if (!r || seen.has(r.id) || !c || /\[link\]|\[no hp\]/i.test(c))
+              return null;
+            seen.add(r.id);
+            return { id: r.id, catatan: aiUnmask(c, M, real).slice(0, 800) };
+          })
+          .filter(Boolean);
+        if (!j.massal.length) delete j.massal;
+      }
+      if (typeof p.j.catatan === "string")
+        j.catatan = aiUnmask(p.j.catatan, M, real);
+      if (STATUS.includes(p.j.status)) j.status = p.j.status;
+      if (typeof p.j.estimasi === "string") j.estimasi = p.j.estimasi;
+    }
+    aiLog.push({
+      r: "m",
+      t: aiUnmask(p.t, M, real),
+      j,
+      ids: mentioned.map((r) => r.id),
+      ts: Date.now(),
+    });
+    aiSave();
+    if (res.sisa)
+      try {
+        localStorage.setItem(
+          AI_QKEY,
+          JSON.stringify({
+            hari: aiHariPT(),
+            t: res.sisa.total,
+            b: res.sisa.berat,
+            cad: !!res.cad,
+          }),
+        );
+      } catch (e) {}
+  } catch (e) {
+    aiErr =
+      !navigator.onLine || /fetch|network|failed/i.test(e.message)
+        ? "Tidak bisa terhubung ke server. Periksa sinyal lalu coba lagi."
+        : e.message;
+  } finally {
+    aiBusy = false;
+    aiNet();
+    aiQuota();
+    aiDraw();
+  }
+}
+
+function aiDraw() {
+  const box = $("aiLog");
+  if (!box) return;
+  let h = aiLog
+    .map((x, i) => {
+      if (x.r === "u") return `<div class="ai-msg u">${esc(x.t)}</div>`;
+      const c =
+        x.ids && x.ids.length === 1 ? D.find((d) => d.id === x.ids[0]) : null;
+      return `<div class="ai-msg m"><div>${aiFmt(x.t)}</div><div class="ai-acts">
+      <button type="button" class="btn-s sm ai-ico" data-ai="copy" data-i="${i}" title="Salin" aria-label="Salin"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+      ${x.j && x.j.massal ? (x.done ? `<button type="button" class="btn-s sm" disabled>Sudah diterapkan</button>` : `<button type="button" class="sm" data-ai="massal" data-i="${i}">Terapkan ${x.j.massal.length} catatan</button>`) : x.j && !(x.ids && x.ids.length > 1) ? `<button type="button" class="sm" data-ai="pakai" data-i="${i}">Pakai ini</button>` : ""}
+      ${c && c.hp ? `<button type="button" class="btn-s sm" data-ai="wa" data-i="${i}">Buka WA</button>` : ""}
+    </div></div>`;
+    })
+    .join("");
+  if (!h && !aiBusy && !aiErr) h = aiWelcome();
+  if (aiBusy)
+    h += `<div class="ai-msg m wait"><span class="dots"><i></i><i></i><i></i></span></div>`;
+  if (aiErr) h += `<div class="ai-msg m err">${esc(aiErr)}</div>`;
+  box.innerHTML = h;
+  box.scrollTop = box.scrollHeight;
+}
+function aiWelcome() {
+  const t = todayStr(),
+    rows = D.filter((r) => !String(r.id).startsWith("draft_")),
+    sup = rows.filter((r) => r.status === "SPK"),
+    fu = rows.filter(
+      (r) => r.fu && !r.fuDone && r.fu <= t && FU_ST.includes(r.status),
+    ).length,
+    kr = sup
+      .map((r) => jadwalK(r))
+      .filter((j) => j && j.hari.length && j.hariIni && !j.sudah).length;
+  return `<div class="ai-empty"><div class="ai-hero">✦</div><b>Halo! Mau dibantu apa hari ini?</b>
+    <p class="muted">Saya membaca ringkasan data keliling kamu: follow-up, kroscek, SPK, dan barang di service.</p>
+    <div class="ai-mini"><div><b>${fu}</b><span>Belum dikunjungi</span></div><div><b>${kr}</b><span>Kroscek hari ini</span></div><div><b>${sup.length}</b><span>Supplier</span></div></div>
+    <p class="muted">Pilih saran di bawah, atau sebut nama klien supaya hasilnya bisa langsung dipakai di form.</p></div>`;
+}
+function aiQuota() {
+  let q = null;
+  try {
+    q = JSON.parse(localStorage.getItem(AI_QKEY) || "null");
+  } catch (e) {}
+  $("aiQuota").textContent =
+    !q || q.hari !== aiHariPT()
+      ? "Kuota hari ini: belum terpakai (perkiraan)"
+      : `Sisa kuota hari ini ±${q.t} pesan · ringkasan ±${q.b}` +
+        (q.cad ? " · mode cadangan" : "");
+}
+function aiNet() {
+  const off = !navigator.onLine;
+  $("aiIn").disabled = off;
+  $("aiSend").disabled = off || aiBusy;
+  $("aiIn").placeholder = off
+    ? "Offline: Tanya AI butuh internet"
+    : "Tulis pesan...";
+}
+const aiGrow = () => {
+  const t = $("aiIn");
+  t.style.height = "auto";
+  t.style.height = Math.min(120, t.scrollHeight) + "px";
+};
+function renderAi() {
+  aiQuota();
+  aiNet();
+  aiDraw();
+}
+
+function aiPakaiForm(x) {
+  const j = x.j || {};
+  const r =
+    x.ids && x.ids.length === 1
+      ? D.find((d) => d.id === x.ids[0] && !String(d.id).startsWith("draft_"))
+      : null;
+  const isi = (p) => {
+    if (j.catatan != null && $(p + "cat"))
+      $(p + "cat").value = String(j.catatan).slice(0, 800);
+    if (j.status && $(p + "st")) {
+      $(p + "st").value = j.status;
+      $(p + "st").onchange();
+    }
+    if (j.estimasi && $(p + "est"))
+      $(p + "est").value = String(j.estimasi).slice(0, 60);
+  };
+  if (r) {
+    openEdit(r);
+    isi("e_");
+  } else {
+    showView("input");
+    isi("i_");
+  }
+  toast("Usulan AI sudah diisi. Periksa dulu, lalu tekan Simpan.");
+}
+function aiTerapkan(x, btn) {
+  const L = (x.j.massal || [])
+    .map((e) => ({ e, r: D.find((d) => d.id === e.id) }))
+    .filter((o) => o.r);
+  if (!L.length) return toast("Klien tidak ditemukan lagi.");
+  if (
+    !confirm(
+      `Ganti catatan ${L.length} klien dengan versi rapi?\n\n${L.map((o) => "- " + o.r.nama).join("\n")}\n\nCatatan lama akan tertimpa.`,
+    )
+  )
+    return;
+  busy(btn, async () => {
+    let ok = 0,
+      gagal = 0;
+    for (const { e, r } of L) {
+      try {
+        const res = await api({
+          action: "update",
+          ...payload(r),
+          catatan: e.catatan,
+        });
+        const i = D.findIndex((d) => d.id === r.id);
+        if (i >= 0) D[i] = res.rec;
+        ok++;
+      } catch (err) {
+        gagal++;
+      }
+    }
+    saveToLocalCache();
+    if (!gagal) {
+      x.done = true;
+      aiSave();
+    }
+    renderAll();
+    aiDraw();
+    toast(
+      gagal
+        ? `${ok} berhasil, ${gagal} gagal. Tekan lagi untuk mengulang.`
+        : `${ok} catatan diperbarui`,
+    );
+  });
+}
+function aiBukaWa(x) {
+  const r =
+    x.ids && x.ids.length === 1 ? D.find((d) => d.id === x.ids[0]) : null;
+  if (!r) return;
+  let n = String(r.hp || "").replace(/\D/g, "");
+  n = n.startsWith("0") ? "62" + n.slice(1) : n.startsWith("8") ? "62" + n : n;
+  if (!n) return toast("Nomor HP belum ada.");
+  if (
+    !window.open(
+      "https://wa.me/" + n + "?text=" + encodeURIComponent(x.t),
+      "_blank",
+    )
+  )
+    toast(
+      "Browser memblokir pembukaan WhatsApp. Izinkan pop-up lalu coba lagi.",
+    );
+}
+
+$("aiLog").onclick = (e) => {
+  const b = e.target.closest("[data-ai]");
+  if (!b) return;
+  const x = aiLog[+b.dataset.i];
+  if (!x) return;
+  if (b.dataset.ai === "copy")
+    (navigator.clipboard
+      ? navigator.clipboard.writeText(x.t)
+      : Promise.reject()
+    ).then(
+      () => {
+        toast("Tersalin");
+        const sv = b.innerHTML;
+        b.innerHTML =
+          '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
+        setTimeout(() => {
+          b.innerHTML = sv;
+        }, 1200);
+      },
+      () => toast("Gagal menyalin. Tekan lama teksnya untuk menyalin manual."),
+    );
+  else if (b.dataset.ai === "pakai") aiPakaiForm(x);
+  else if (b.dataset.ai === "massal") aiTerapkan(x, b);
+  else if (b.dataset.ai === "wa") aiBukaWa(x);
+};
+$("aiChips").onclick = (e) => {
+  const b = e.target.closest("[data-t]");
+  if (!b) return;
+  if (b.dataset.send) {
+    if (!aiBusy && navigator.onLine) aiKirim(b.dataset.t);
+    return;
+  }
+  $("aiIn").value = b.dataset.t;
+  aiGrow();
+  $("aiIn").focus();
+};
+$("aiSend").onclick = () => {
+  const v = $("aiIn").value;
+  if (!v.trim() || aiBusy || !navigator.onLine) return;
+  $("aiIn").value = "";
+  aiGrow();
+  aiKirim(v);
+};
+$("aiIn").oninput = aiGrow;
+$("aiIn").onkeydown = (e) => {
+  if (
+    e.key === "Enter" &&
+    !e.shiftKey &&
+    !/Mobi|Android/i.test(navigator.userAgent)
+  ) {
+    e.preventDefault();
+    $("aiSend").click();
+  }
+};
+$("aiClear").onclick = () => {
+  if (
+    !aiLog.length ||
+    !confirm("Hapus seluruh percakapan AI di perangkat ini?")
+  )
+    return;
+  aiLog = [];
+  aiErr = "";
+  aiSave();
+  aiDraw();
+};
+$("aiReal").checked = aiRealOn();
+$("aiReal").onchange = () => {
+  try {
+    localStorage.setItem(AI_REAL, $("aiReal").checked ? "1" : "0");
+  } catch (e) {}
+  toast(
+    $("aiReal").checked
+      ? "Nama asli klien akan ikut dikirim ke Google."
+      : "Nama klien disamarkan jadi kode.",
+  );
+};
+window.addEventListener("online", aiNet);
+window.addEventListener("offline", aiNet);
 // ===== TOP BAR MOBILE (Segarkan, Tema, Keluar, status sinkron) =====
 (function initTopbar() {
   const pair = { tbSync: "syncBtn", tbDark: "darkBtn", tbOut: "logoutBtn" };

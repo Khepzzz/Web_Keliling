@@ -82,6 +82,10 @@
       <svg viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
       Peta
     </button>
+        <button class="nav" data-v="ai">
+      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Tanya AI
+    </button>
     <button class="nav" id="syncBtn" title="Sinkronkan data">
       <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       <span id="syncText">Segarkan</span>
@@ -166,7 +170,28 @@
       </div>
       <div id="spkList"></div>
     </section>
-
+    <section id="v-ai" class="view hidden">
+      <div class="rh">
+        <h2 style="margin:0">Tanya AI</h2>
+        <button type="button" class="btn-d sm" id="aiClear">Hapus percakapan</button>
+      </div>
+      <div class="ai-meta">
+        <span class="muted" id="aiQuota"></span>
+        <label class="ai-real"><input type="checkbox" id="aiReal"> Kirim nama asli</label>
+      </div>
+      <div class="ai-box">
+        <div class="ai-log" id="aiLog"></div>
+        <div class="chips ai-chips" id="aiChips">
+          <button type="button" class="chip" data-t="Rapikan catatan ini: ">Rapikan catatan</button>
+          <button type="button" class="chip" data-t="Buatkan draft WA follow-up untuk ">Draft WA follow-up</button>
+          <button type="button" class="chip" data-t="Rangkum kroscek supplier ">Rangkum kroscek</button>
+        </div>
+        <div class="ai-bar">
+          <textarea id="aiIn" rows="1" maxlength="1500" placeholder="Tulis pesan..."></textarea>
+          <button type="button" id="aiSend" aria-label="Kirim"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+        </div>
+      </div>
+    </section>
     <section id="v-detail" class="view hidden"></section>
     <section id="v-spkd" class="view hidden"></section>
 
