@@ -1057,6 +1057,11 @@ img.ph-fail { color: transparent; background: var(--bad-surface); border: 1px da
 
   .toast { bottom: calc(100px + env(safe-area-inset-bottom)); }
 
+  /* Keyboard HP terbuka: sembunyikan dock bawah */
+  body.kb-open .side { display: none; }
+  body.kb-open main { padding-bottom: 14px; }
+  body.kb-open .toast { bottom: 20px; }
+
   /* Dialog jadi bottom sheet */
   dialog {
     margin: auto auto 0;

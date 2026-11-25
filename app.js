@@ -3682,6 +3682,31 @@ window.addEventListener("offline", aiNet);
   });
 })();
 
+// ===== Sembunyikan dock bawah hanya saat keyboard HP benar-benar terbuka =====
+(function keyboardDock(){
+  const vv = window.visualViewport;
+  const isField = el => !!el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)
+    && !["checkbox","radio","button","file","submit"].includes(el.type);
+  const tinggi = () => vv ? vv.height : window.innerHeight;
+  let base = Math.max(tinggi(), window.innerHeight);
+
+  const update = () => {
+    const fokus = isField(document.activeElement);
+    // Ukuran penuh layar hanya dicatat saat tidak ada input yang fokus
+    if (!fokus) base = Math.max(tinggi(), window.innerHeight);
+    const terbuka = fokus && (vv ? base - tinggi() > 120 : true);
+    document.body.classList.toggle("kb-open", terbuka);
+  };
+
+  document.addEventListener("focusin", () => setTimeout(update, 50));
+  document.addEventListener("focusout", () => setTimeout(update, 80));
+  if (vv) vv.addEventListener("resize", update);
+  window.addEventListener("orientationchange", () => setTimeout(() => {
+    base = Math.max(tinggi(), window.innerHeight);
+    update();
+  }, 300));
+})();
+
 if(password){
   const v = sessionStorage.getItem("view");
   showApp();
