@@ -555,7 +555,7 @@ function initPhotos(p, initial = [], ctx = null) {
     e.target.value = "";
     draw();
   };
-  $(p + "fc").onchange = add;
+  $(p + "fc").onchange = addCam;
   $(p + "fg").onchange = add;
   draw();
   return {
