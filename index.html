@@ -98,34 +98,38 @@
   </nav>
   <main>
     <section id="v-dash" class="view">
-      <div class="dash-header">
-        <div class="rh" style="margin-bottom:0">
-          <h2 style="margin:0">Dashboard</h2>
-          <select id="period" style="width:auto"><option value="7">7 hari</option><option value="30" selected>30 hari</option><option value="90">90 hari</option><option value="0">Semua</option></select>
-        </div>
-      </div>
-      <div id="routeBar" class="route-box hidden">
+      <div class="dash-head">
         <div>
-        <b>
-          <svg class="ico" viewBox="0 0 24 24" style="vertical-align:-3px"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
-          Rencana Kunjungan Hari Ini
-        </b>
-          <div class="muted" id="routeText">0 klien &amp; kroscek dijadwalkan</div>
+          <h2>Dashboard</h2>
+          <span class="dash-date" id="dashDate"></span>
+        </div>
+        <select id="period"><option value="7">7 hari</option><option value="30" selected>30 hari</option><option value="90">90 hari</option><option value="0">Semua</option></select>
+      </div>
+
+      <div id="routeBar" class="route-box hidden">
+        <div class="rb-num" id="routeNum">0</div>
+        <div class="rb-info">
+          <b>Rencana Kunjungan Hari Ini</b>
+          <div class="muted" id="routeText"></div>
         </div>
         <button type="button" class="btn-s sm" id="openRouteBtn">Buka Rute di Google Maps</button>
       </div>
+
+      <div class="grid" id="stats"></div>
+
       <div class="dash-grid">
-        <div class="dash-main">
-          <div class="grid" id="stats"></div>
-          <div class="card"><h2>Klien per status</h2><div id="barStatus"></div></div>
-          <div class="card"><h2>Data baru per minggu</h2><div class="wk" id="wk"></div></div>
+        <div class="dc-left">
+          <div class="card" id="cFu"><div class="card-h"><h2>Perlu di-follow-up</h2><span class="pill" id="fuCnt"></span></div><div id="fuList"></div></div>
+          <div class="card" id="cKj"><div class="card-h"><h2>Jadwal kroscek</h2><span class="pill" id="kjCnt"></span></div><div id="kJadwal"></div></div>
         </div>
-        <div class="dash-side">
-          <div class="card"><h2>Perlu di-follow-up</h2><div id="fuList"></div></div>
-          <div class="card"><h2>Jadwal kroscek</h2><div id="kJadwal"></div></div>
-          <div class="card"><h2>Barang di service</h2><div id="svcList"></div></div>
-          <div class="card"><h2>SPK mau jatuh tempo</h2><div id="spkDue"></div></div>
-          <div class="card"><h2>Aktivitas terbaru</h2><div id="recent"></div></div>
+        <div class="dc-right">
+          <div class="card" id="cSt"><div class="card-h"><h2>Klien per status</h2></div><div id="barStatus"></div></div>
+          <div class="card" id="cWk"><div class="card-h"><h2>Data baru per minggu</h2></div><div class="wk" id="wk"></div></div>
+        </div>
+        <div class="dc-bottom">
+          <div class="card" id="cSvc"><div class="card-h"><h2>Barang di service</h2><span class="pill" id="svcCnt"></span></div><div id="svcList"></div></div>
+          <div class="card" id="cDue"><div class="card-h"><h2>SPK mau jatuh tempo</h2><span class="pill" id="dueCnt"></span></div><div id="spkDue"></div></div>
+          <div class="card" id="cRec"><div class="card-h"><h2>Aktivitas terbaru</h2></div><div id="recent"></div></div>
         </div>
       </div>
     </section>

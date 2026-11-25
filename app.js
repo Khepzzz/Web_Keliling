@@ -455,7 +455,7 @@ async function buatStempel(c, job) {
   });
   const st = { nama: c.nama, alamat: "", koor: "", tgl: tglStr };
   if (lat != null) {
-    st.koor = `${lat.toFixed(6)}, ${lng.toFixed(6)} (${src})`;
+    st.koor = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
     st.alamat = await cariAlamat(lat, lng);
   }
   return st;
@@ -1193,19 +1193,29 @@ const urutBtn = (w) =>
   `<div class="acts" style="margin:0 0 6px"><button class="btn-s sm" data-act="urut" data-w="${w}">${urut[w] === "jarak" ? "Terdekat dulu · ketuk untuk urutan biasa" : "Urutkan terdekat"}</button></div>`;
 
 function renderDash() {
+  if ($("dashDate"))
+    $("dashDate").textContent = new Date().toLocaleDateString("id-ID", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
   const rows = inPeriod(D),
     cnt = (s) => rows.filter((r) => r.status === s).length;
   $("stats").innerHTML =
-    `<div class="stat go" data-go="riwayat"><span class="muted">Total klien</span><b>${rows.length}</b></div>` +
+    `<div class="stat go" data-go="riwayat"><span class="muted">Total klien</span><b>${rows.length}</b><small class="muted">${esc($("period").selectedOptions[0].textContent)}</small></div>` +
     STATUS.map(
       (s) =>
-        `<div class="stat go" data-go="riwayat" data-st="${s}" style="--c:${COL[s]}"><span class="muted">${s}</span><b>${cnt(s)}</b></div>`,
+        `<div class="stat go" data-go="riwayat" data-st="${s}" style="--c:${COL[s]}"><span class="muted">${s}</span><b>${cnt(s)}</b><small class="muted">${rows.length ? Math.round((cnt(s) / rows.length) * 100) : 0}%</small></div>`,
     ).join("");
-  const mx = Math.max(1, ...STATUS.map(cnt));
-  $("barStatus").innerHTML = STATUS.map(
-    (s) =>
-      `<div class="bar go" data-go="riwayat" data-st="${s}" style="--c:${COL[s]}"><span>${s}</span><div><div style="width:${(cnt(s) / mx) * 100}%"></div></div><b>${cnt(s)}</b></div>`,
-  ).join("");
+  $("barStatus").innerHTML =
+    `<div class="seg">${STATUS.filter((s) => cnt(s) > 0)
+      .map(
+        (s) =>
+          `<i data-go="riwayat" data-st="${s}" style="--c:${COL[s]};flex:${cnt(s)}" title="${s}: ${cnt(s)}"></i>`,
+      )
+      .join("")}</div>` +
+    `<div class="seg-leg">${STATUS.map((s) => `<div class="lg" data-go="riwayat" data-st="${s}" style="--c:${COL[s]}"><i></i><span>${s}</span><b>${cnt(s)}</b></div>`).join("")}</div>`;
   const now = new Date();
   now.setHours(0, 0, 0, 0);
   const mon = new Date(now);
@@ -1218,6 +1228,7 @@ function renderDash() {
     e.setDate(s.getDate() + 7);
     wk.push({
       l: s.toLocaleDateString("id-ID", { day: "numeric", month: "short" }),
+      cur: i === 0,
       n: D.filter((r) => {
         const t = new Date(r.waktu);
         return t >= s && t < e;
@@ -1228,7 +1239,7 @@ function renderDash() {
   $("wk").innerHTML = wk
     .map(
       (w) =>
-        `<div><span>${w.n}</span><div style="height:${(w.n / wm) * 80}%"></div><span>${w.l}</span></div>`,
+        `<div${w.cur ? ' class="cur"' : ""}><span>${w.n}</span><div style="height:${(w.n / wm) * 80}%"></div><span>${w.l}</span></div>`,
     )
     .join("");
 
@@ -1253,7 +1264,8 @@ function renderDash() {
     if (ruteHariIni.length > 0) {
       routeBar.classList.remove("hidden");
       $("routeText").textContent =
-        `${ruteHariIni.length} titik (${fuToday.length} follow-up, ${kToday.length} kroscek) · ${ruteWithCoords.length} lokasi berkoordinat`;
+        `${fuToday.length} follow-up · ${kToday.length} kroscek · ${ruteWithCoords.length} lokasi berkoordinat`;
+      $("routeNum").textContent = ruteHariIni.length;
       $("openRouteBtn").onclick = () => {
         if (!ruteWithCoords.length)
           return toast(
@@ -1297,7 +1309,7 @@ function renderDash() {
       fu
         .map(
           (r) =>
-            `<div class="li go" data-go="riwayat" data-q="${esc(r.nama)}"><span><b>${esc(r.nama)}</b><br><span class="muted">${fmtDay(r.fu)}${r.fu < today ? " · terlambat" : ""}${jarakInfo(r)}</span></span><span>${badge(r.status)} ${mapMini(r)} <button class="sm" data-act="fudone" data-id="${esc(r.id)}">Sudah</button></span></div>`,
+            `<div class="li go" data-go="riwayat" data-q="${esc(r.nama)}"><span class="li-main"><b>${esc(r.nama)}</b><span class="muted">${fmtDay(r.fu)}${r.fu < today ? " · terlambat" : ""}${jarakInfo(r)}</span>${badge(r.status)}</span><span class="li-acts">${mapMini(r)}<button class="sm" data-act="fudone" data-id="${esc(r.id)}">Sudah</button></span></div>`,
         )
         .join("")
     : `<p class="muted">Tidak ada follow-up yang menunggu. Isi tanggal follow-up di form klien.</p>`;
@@ -1355,6 +1367,17 @@ function renderDash() {
           `<div class="li go" data-go="riwayat" data-q="${esc(r.nama)}"><span><b>${esc(r.nama)}</b><br><span class="muted">${fmtTime(r.waktu)}</span></span>${badge(r.status)}</div>`,
       )
       .join("") || `<p class="muted">Belum ada data.</p>`;
+  const setCnt = (id, n) => {
+    const e = $(id);
+    if (e) e.textContent = n;
+  };
+  setCnt(
+    "fuCnt",
+    D.filter((r) => r.fu && !r.fuDone && FU_ST.includes(r.status)).length,
+  );
+  setCnt("kjCnt", jk.length);
+  setCnt("svcCnt", sv.length);
+  setCnt("dueCnt", due.length);
 }
 
 function filtered() {
