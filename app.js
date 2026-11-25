@@ -3696,11 +3696,18 @@ window.addEventListener("offline", aiNet);
     if (!fokus) base = Math.max(tinggi(), window.innerHeight);
     const terbuka = fokus && (vv ? base - tinggi() > 120 : true);
     document.body.classList.toggle("kb-open", terbuka);
+    document.documentElement.style.setProperty("--vvh", tinggi() + "px");
+    if (terbuka && cur === "ai") window.scrollTo(0, 0);
   };
 
   document.addEventListener("focusin", () => setTimeout(update, 50));
   document.addEventListener("focusout", () => setTimeout(update, 80));
   if (vv) vv.addEventListener("resize", update);
+  if (vv)
+    vv.addEventListener("scroll", () => {
+      if (cur === "ai" && document.body.classList.contains("kb-open"))
+        window.scrollTo(0, 0);
+    });
   window.addEventListener("orientationchange", () => setTimeout(() => {
     base = Math.max(tinggi(), window.innerHeight);
     update();
