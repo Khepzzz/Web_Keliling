@@ -1291,8 +1291,15 @@ function renderDash() {
           const waypoints = pts.slice(0, pts.length - 1).join("|");
           url = `https://www.google.com/maps/dir/?api=1&destination=${dest}&waypoints=${waypoints}`;
         }
-        window.open(url, "_blank");
-      };
+        // Pindah langsung di tab yang sama (tanpa tab kosong dulu).
+        // Jeda 1,5 dtk hanya kalau ada toast "titik sisanya tidak ikut", supaya sempat terbaca.
+        setTimeout(
+          () => {
+            window.location.href = url;
+          },
+          semua.length > MAXP ? 1500 : 0,
+        );
+      };;
     } else {
       routeBar.classList.add("hidden");
     }
