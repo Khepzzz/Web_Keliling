@@ -1191,3 +1191,152 @@ img.ph-fail {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+
+/* ===== GLASSMORPHISM + DOCK PIL + PAGER (tempel di PALING BAWAH style.css) ===== */
+:root {
+  --glass-bg: color-mix(in srgb, var(--surface) 62%, transparent);
+  --glass-bd: color-mix(in srgb, var(--ink) 14%, transparent);
+}
+
+/* Pager Riwayat: tombol dan teks halaman rata tengah */
+.pager {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 8px 0 24px;
+}
+.pager:empty { display: none; }
+.pager .btn-s { min-width: 112px; }
+.pager > span {
+  min-width: 72px;
+  text-align: center;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.pager .btn-s:disabled { opacity: 0.4; }
+
+/* Legend: panel kaca melayang di pojok kiri bawah peta */
+.map-wrap { position: relative; }
+.map-wrap .legend {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 5;
+  margin: 0;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 5px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+  border: 1px solid var(--glass-bd);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  pointer-events: none;
+}
+.map-wrap .legend span { font-size: 0.74rem; }
+
+/* Dropdown status dan toggle Normal/Satelit */
+#mapSt {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-bd);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.map-tile-toggle {
+  background: var(--glass-bg);
+  border-color: var(--glass-bd);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Kontrol zoom, atribusi, dan popup Leaflet */
+.leaflet-bar { border: 1px solid var(--glass-bd) !important; box-shadow: var(--shadow) !important; }
+.leaflet-bar a {
+  background: var(--glass-bg);
+  color: var(--ink);
+  border-bottom-color: var(--glass-bd);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.leaflet-bar a:hover, .leaflet-bar a:focus { background: var(--surface-subtle); color: var(--ink); }
+.leaflet-container .leaflet-control-attribution {
+  background: var(--glass-bg);
+  color: var(--muted);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.leaflet-popup-content-wrapper {
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  border: 1px solid var(--glass-bd);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+}
+.leaflet-popup-tip {
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  border: 1px solid var(--glass-bd);
+}
+
+/* Dock bawah HP: pil melayang bergaya kaca */
+@media (max-width: 760px) {
+  .side {
+    left: 12px;
+    right: 12px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    width: auto;
+    padding: 6px;
+    border-radius: 999px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-bd);
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  }
+  .nav[data-v] { border-radius: 999px; }
+  main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+  .toast { bottom: calc(100px + env(safe-area-inset-bottom)); }
+}
+
+/* ===== DASHBOARD: jarak header + statistik di kolom kiri (tempel di PALING BAWAH) ===== */
+.dash-header { margin-bottom: 14px; }
+
+/* Saat data belum termuat: kartu disembunyikan, tapi statistik (skeleton / pesan gagal) tetap tampil */
+.dash-grid.hidden { display: grid !important; }
+.dash-grid.hidden .dash-side,
+.dash-grid.hidden .dash-main > .card { display: none !important; }
+
+.dash-main > .grid { margin-bottom: 0; }
+.dash-main .grid > .sk-grid,
+.dash-main .grid > .card { grid-column: 1 / -1; }
+
+/* Desktop dan tablet: 6 kartu statistik jadi 3 kolom x 2 baris */
+@media (min-width: 761px) {
+  .dash-main > .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* ===== PETA: jarak header + atribusi kecil (tempel di PALING BAWAH) ===== */
+#v-peta .rh { margin-bottom: 14px; }
+.leaflet-container .leaflet-control-attribution {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 8px 0 0 0;
+}
+
+/* ===== PETA: dropdown dan toggle sama tinggi (tempel di PALING BAWAH) ===== */
+#v-peta .rh select#mapSt {
+  height: 42px;
+  margin-top: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+#v-peta .map-tile-toggle {
+  height: 42px;
+  box-sizing: border-box;
+  align-items: stretch;
+}
+#v-peta .tile-btn {
+  padding-top: 0;
+  padding-bottom: 0;
+}

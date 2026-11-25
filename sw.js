@@ -1,4 +1,4 @@
-const CACHE_NAME = "keliling-pwa-v2";
+const CACHE_NAME = "keliling-pwa-v3";
 const CORE = [
   "./",
   "./index.html",

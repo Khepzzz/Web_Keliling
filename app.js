@@ -1716,16 +1716,27 @@ let mapSig = "",
 const TILES = {
   normal: {
     url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-    attr: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    attr: "&copy; OpenStreetMap",
     maxZoom: 19,
   },
   satelit: {
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    attr: "Tiles &copy; Esri &mdash; Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
+    attr: "&copy; Esri",
     maxZoom: 19,
     maxNativeZoom: 18,
   },
 };
+
+// Ukuran titik mengikuti zoom: kecil saat zoom jauh, penuh saat zoom dekat
+const markerSize = (z) => ({
+  r: z < 11 ? 3.5 : z < 13 ? 4.5 : z < 15 ? 6 : z < 17 ? 8 : 9,
+  w: z < 15 ? 1.2 : 2.5,
+});
+function resizeMarkers() {
+  if (!map || !layer) return;
+  const s = markerSize(map.getZoom());
+  layer.eachLayer((m) => m.setStyle({ radius: s.r, weight: s.w }));
+}
 
 function switchMapTile(mode) {
   if (!map) return;
@@ -1751,13 +1762,16 @@ function switchMapTile(mode) {
 function renderMap() {
   if (cur !== "peta") return;
   if (!map) {
-    map = L.map("map").setView([-6.6, 110.7], 8);
+    map = L.map("map", { attributionControl: false }).setView([-6.6, 110.7], 8);
+    L.control.attribution({ prefix: false }).addTo(map);
     tileNormalLayer = L.tileLayer(TILES.normal.url, {
       maxZoom: 19,
       maxNativeZoom: 19,
       attribution: TILES.normal.attr,
     }).addTo(map);
     layer = L.layerGroup().addTo(map);
+    map.on("zoomend", resizeMarkers);
+    switchMapTile("satelit");
     // Wire tile toggle buttons
     const tn = $("tileNormal"),
       ts = $("tileSatelit");
@@ -1814,9 +1828,9 @@ function renderMap() {
     `;
 
     L.circleMarker([r.lat, r.lng], {
-      radius: 9,
+      radius: markerSize(map.getZoom()).r,
       color: "#ffffff",
-      weight: 2.5,
+      weight: markerSize(map.getZoom()).w,
       fillColor: COL[r.status] || "#0d9488",
       fillOpacity: 0.95,
     })
@@ -1858,6 +1872,8 @@ function showView(v) {
       ),
     );
   scrollTo(0, 0);
+  if (document.activeElement && document.activeElement.blur)
+    document.activeElement.blur(); // cegah keyboard HP muncul sendiri
   if (v === "dash") aman(renderDash);
   if (v === "riwayat") aman(renderRiwayat);
   if (v === "spk") aman(renderSpk);

@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="style.css?v=2">
+<link rel="stylesheet" href="style.css?v=3">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -114,18 +114,18 @@
         </div>
         <button type="button" class="btn-s sm" id="openRouteBtn">Buka Rute di Google Maps</button>
       </div>
-      <div class="grid" id="stats" style="margin-top:12px"></div>
       <div class="dash-grid">
         <div class="dash-main">
+          <div class="grid" id="stats"></div>
           <div class="card"><h2>Klien per status</h2><div id="barStatus"></div></div>
           <div class="card"><h2>Data baru per minggu</h2><div class="wk" id="wk"></div></div>
-          <div class="card"><h2>Aktivitas terbaru</h2><div id="recent"></div></div>
         </div>
         <div class="dash-side">
           <div class="card"><h2>Perlu di-follow-up</h2><div id="fuList"></div></div>
           <div class="card"><h2>Jadwal kroscek</h2><div id="kJadwal"></div></div>
           <div class="card"><h2>Barang di service</h2><div id="svcList"></div></div>
           <div class="card"><h2>SPK mau jatuh tempo</h2><div id="spkDue"></div></div>
+          <div class="card"><h2>Aktivitas terbaru</h2><div id="recent"></div></div>
         </div>
       </div>
     </section>
@@ -172,19 +172,21 @@
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <select id="mapSt" style="width:auto"></select>
           <div class="map-tile-toggle">
-            <button class="tile-btn on" id="tileNormal" title="Tampilan normal">
+            <button class="tile-btn" id="tileNormal" title="Tampilan normal">
               <svg viewBox="0 0 24 24"><path d="M3 6l9-3 9 3M3 6v13l9 3 9-3V6M12 3v16"/><path d="M3 12l9 3 9-3"/></svg>
               Normal
             </button>
-            <button class="tile-btn" id="tileSatelit" title="Tampilan satelit">
+            <button class="tile-btn on" id="tileSatelit" title="Tampilan satelit">
               <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M2 12h4M18 12h4M12 2v4M12 18v4"/></svg>
               Satelit
             </button>
           </div>
         </div>
       </div>
-      <div class="legend" id="legend"></div>
+      <div class="map-wrap">
+        <div class="legend" id="legend"></div>
       <div id="map"></div>
+      </div>
       <p class="muted" id="mapInfo"></p>
     </section>
   </main>
@@ -233,6 +235,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<script src="app.js?v=2"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>
