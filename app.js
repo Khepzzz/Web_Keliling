@@ -474,7 +474,7 @@ function stampFoto(c, s) {
       .split(/\s+/)
       .forEach((w) => {
         const x = cur ? cur + " " + w : w;
-        if (g.measureText(x).width > W - 2 * pad && cur) {
+        if (g.measureText(x).width > W * 0.7 - pad && cur) {
           lines.push(cur);
           cur = w;
         } else cur = x;
@@ -487,7 +487,7 @@ function stampFoto(c, s) {
     rows = [];
   if (s.tgl) rows.push({ t: s.tgl, f: fn });
   wrap(s.nama, fb, 2).forEach((t) => rows.push({ t, f: fb }));
-  if (s.alamat) wrap(s.alamat, fn, 3).forEach((t) => rows.push({ t, f: fn }));
+  if (s.alamat) wrap(s.alamat, fn, 4).forEach((t) => rows.push({ t, f: fn }));
   if (s.koor) wrap(s.koor, fn, 2).forEach((t) => rows.push({ t, f: fn }));
   const h = rows.length * lh + pad * 2,
     top = c.height - h;
