@@ -1340,3 +1340,6 @@ img.ph-fail {
   padding-top: 0;
   padding-bottom: 0;
 }
+
+/* ===== SUPPLIER: jarak judul ke kartu pencarian (tempel di PALING BAWAH) ===== */
+#v-spk > .rh { margin-bottom: 14px; }
