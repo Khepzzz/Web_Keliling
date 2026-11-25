@@ -1113,7 +1113,7 @@ img.ph-fail { color: transparent; background: var(--bad-surface); border: 1px da
 .ai-real input { width: auto; margin: 0; }
 .ai-box {
   display: flex; flex-direction: column;
-  height: calc(100vh - 210px); height: calc(100dvh - 210px); min-height: 360px;
+  height: calc(100vh - 142px); height: calc(100dvh - 142px); min-height: 360px;
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden;
 }
