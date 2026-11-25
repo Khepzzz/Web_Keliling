@@ -453,7 +453,7 @@ async function buatStempel(c, job) {
     month: "long",
     year: "numeric",
   });
-  const st = { nama: c.nama, alamat: "", koor: "", tgl: "Tanggal: " + tglStr };
+  const st = { nama: c.nama, alamat: "", koor: "", tgl: tglStr };
   if (lat != null) {
     st.koor = `${lat.toFixed(6)}, ${lng.toFixed(6)} (${src})`;
     st.alamat = await cariAlamat(lat, lng);
@@ -491,8 +491,10 @@ function stampFoto(c, s) {
   if (s.koor) wrap(s.koor, fn, 2).forEach((t) => rows.push({ t, f: fn }));
   const h = rows.length * lh + pad * 2,
     top = c.height - h;
-  g.fillStyle = "rgba(0,0,0,.58)";
-  g.fillRect(0, top, W, h);
+  g.shadowColor = "rgba(0,0,0,.9)";
+  g.shadowBlur = Math.round(fs * 0.25);
+  g.shadowOffsetX = 1;
+  g.shadowOffsetY = 1;
   g.fillStyle = "#fff";
   g.textBaseline = "top";
   rows.forEach((r, i) => {
